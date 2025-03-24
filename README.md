@@ -17,7 +17,7 @@ Order Go是一个高性能的量化交易系统，支持接收交易信号，使
 - API文档：Swagger
 - 消息队列：Redis
 - 缓存：Redis
-- 容器化：Docker
+
 
 ## 主要功能
 
