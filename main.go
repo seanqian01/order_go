@@ -7,6 +7,7 @@ import (
 	"order_go/internal/database"
 	"order_go/internal/queue"
 	"order_go/internal/repository"
+	"order_go/internal/strategy"
 	"order_go/internal/utils/config"
 	"order_go/test"
 
@@ -45,6 +46,9 @@ func startServer() {
 
 	// 初始化消息队列
 	queue.InitSignalQueue()
+
+	// 初始化策略管理器
+	strategy.GetManager().InitStrategies()
 
 	// 设置运行模式
 	gin.SetMode(config.AppConfig.Server.Mode)

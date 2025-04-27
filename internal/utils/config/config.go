@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
 )
 
@@ -56,7 +57,34 @@ func InitConfig() error {
 
 // InitLogger 初始化日志
 func InitLogger() error {
-	logger, err := zap.NewProduction()
+	// 创建自定义日志配置
+	config := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development: false,
+		Sampling: &zap.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding: "console", // 使用控制台格式，更易读
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "ts",
+			LevelKey:       "level",
+			NameKey:        zapcore.OmitKey,
+			CallerKey:      zapcore.OmitKey,  // 不输出调用者信息
+			FunctionKey:    zapcore.OmitKey,
+			MessageKey:     "msg",
+			StacktraceKey:  zapcore.OmitKey,  // 不输出堆栈信息
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.CapitalColorLevelEncoder, // 带颜色的日志级别
+			EncodeTime:     zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05"),
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+	
+	logger, err := config.Build()
 	if err != nil {
 		return err
 	}
