@@ -5,6 +5,7 @@
 *.so
 *.dylib
 *.db
+/test/
 
 .DS_Store
 
