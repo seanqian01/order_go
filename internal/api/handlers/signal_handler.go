@@ -45,58 +45,36 @@ func HandleSignal(c *gin.Context) {
 		"time_circle", signal.TimeCircle,
 	)
 
-	// 将信号同时发送到处理队列和存储队列
+	// 只发送信号到处理队列，处理完成后再存储
 	signalSent := false
-	storeSent := false
 
 	// 尝试发送到处理队列
 	select {
 	case queue.SignalQueue <- signal:
 		signalSent = true
+		config.Logger.Infow("信号已发送到处理队列",
+			"symbol", signal.Symbol,
+			"action", signal.Action)
 	case <-time.After(100 * time.Millisecond):
 		config.Logger.Warn("处理队列已满，信号未被处理",
 			"symbol", signal.Symbol,
 			"strategy_id", signal.StrategyID)
 	}
 
-	// 尝试发送到存储队列
-	select {
-	case queue.StoreQueue <- signal:
-		storeSent = true
-	case <-time.After(100 * time.Millisecond):
-		config.Logger.Warn("存储队列已满，信号未被存储",
-			"symbol", signal.Symbol,
-			"strategy_id", signal.StrategyID)
-	}
-
 	// 根据发送结果返回不同的状态
-	if signalSent && storeSent {
+	if signalSent {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "received",
 			"symbol":  signal.Symbol,
 			"action":  signal.Action,
-			"message": "signal processed and stored successfully",
-		})
-	} else if signalSent {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "received",
-			"symbol":  signal.Symbol,
-			"action":  signal.Action,
-			"message": "signal processed but not stored",
-		})
-	} else if storeSent {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "received",
-			"symbol":  signal.Symbol,
-			"action":  signal.Action,
-			"message": "signal stored but not processed",
+			"message": "signal sent to processing queue",
 		})
 	} else {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status":  "failed",
 			"symbol":  signal.Symbol,
 			"action":  signal.Action,
-			"message": "signal neither processed nor stored",
+			"message": "signal could not be processed",
 		})
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"order_go/internal/models"
 	"order_go/internal/repository"
 	"order_go/internal/strategy"
+	"order_go/internal/trading"
 	"order_go/internal/utils/config"
 )
 
@@ -32,6 +33,21 @@ func InitSignalQueue() {
 
 // processSignal 处理交易信号的核心逻辑
 func processSignal(signal models.TradingSignal) {
+    // 创建一个延迟函数，确保无论如何都会将信号发送到存储队列
+    defer func() {
+        // 将信号发送到存储队列，无论信号是否有效
+        // 使用非阻塞方式发送，避免存储队列满时阻塞处理队列
+        select {
+        case StoreQueue <- signal:
+            // 存储成功时不输出日志，减少日志冗余
+        default:
+            config.Logger.Warnw("存储队列已满，信号未被存储",
+                "symbol", signal.Symbol,
+                "action", signal.Action,
+            )
+        }
+    }()
+    
     // 1. 调用策略管理器验证信号
     strategyManager := strategy.GetManager()
     valid, reason := strategyManager.ValidateSignal(signal)
@@ -44,8 +60,21 @@ func processSignal(signal models.TradingSignal) {
         return
     }
     
-    // 2. 执行交易逻辑
-    // TODO: 添加调用Gate.io API创建订单的逻辑
+    // 2. 调用交易引擎执行交易逻辑
+    engine := trading.GetEngine()
+    if err := engine.ProcessSignal(signal); err != nil {
+        config.Logger.Errorw("交易执行失败",
+            "error", err.Error(),
+            "symbol", signal.Symbol,
+            "action", signal.Action,
+        )
+        return
+    }
+    
+    config.Logger.Infow("交易信号处理成功",
+        "symbol", signal.Symbol,
+        "action", signal.Action,
+    )
 }
 
 // storeSignal 异步保存信号到数据库

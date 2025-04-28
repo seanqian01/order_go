@@ -23,6 +23,13 @@ func (s *TrendingStrategy) ValidateSignal(signal models.TradingSignal) (bool, st
 		return false, "交易对不能为空"
 	}
 	
+	// 1.1 检查交易对是否在数据库中存在
+	var count int64
+	result := repository.DB.Model(&models.ContractCode{}).Where("symbol = ?", signal.Symbol).Count(&count)
+	if result.Error != nil || count == 0 {
+		return false, "交易对在数据库中不存在"
+	}
+	
 	// 2. 检查价格是否合理
 	if signal.Price <= 0 {
 		return false, "价格必须大于0"
@@ -55,12 +62,14 @@ func (s *TrendingStrategy) checkLastSignalDirection(signal models.TradingSignal)
 	// 严格使用原始symbol进行查询，不做任何修改
 	query := repository.DB.Where("symbol = ?", signal.Symbol)
 	
-	// 只有当信号ID大于0时才添加ID排除条件
+	// 只排除当前信号的ID，确保能获取到最新的信号记录
 	if signal.ID > 0 {
 		query = query.Where("id != ?", signal.ID)
 	}
 	
-	err := query.Order("created_at DESC").First(&lastSignal).Error
+	// 不再添加时间间隔检查，确保能获取到最新的信号记录
+	// 使用ID降序排序，确保获取到最新的记录
+	err := query.Order("id DESC").First(&lastSignal).Error
 	
 	// 如果没有找到记录，说明是第一次收到该交易对的信号，直接返回有效
 	if err != nil {
@@ -76,9 +85,17 @@ func (s *TrendingStrategy) checkLastSignalDirection(signal models.TradingSignal)
 		return true, ""
 	}
 	
+	// 添加日志输出，显示最近的信号和当前信号
+	config.Logger.Infow("比较信号方向",
+		"current_action", signal.Action,
+		"last_action", lastSignal.Action,
+		"last_signal_id", lastSignal.ID,
+		"last_signal_time", lastSignal.CreatedAt,
+	)
+	
 	// 如果最近的信号方向与当前信号相同，则返回无效
 	if lastSignal.Action == signal.Action {
-		return false, "连续信号方向不能相同，上一个信号已经是 " + signal.Action
+		return false, "连续信号方向不能相同，上一个信号已经是 " + lastSignal.Action
 	}
 	
 	// 方向不同，返回有效，无需特别输出日志

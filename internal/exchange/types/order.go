@@ -33,8 +33,11 @@ type Order struct {
 
 // OrderResponse 下单响应
 type OrderResponse struct {
-    OrderID   string  `json:"order_id"`   // 订单ID
-    Status    string  `json:"status"`     // 订单状态
-    FilledQty float64 `json:"filled_qty"` // 已成交数量
-    Error     error   `json:"-"`          // 错误信息
+    OrderID     string  `json:"order_id"`      // 订单ID
+    Status      string  `json:"status"`        // 订单状态
+    FilledQty   float64 `json:"filled_qty"`    // 已成交数量
+    FilledPrice float64 `json:"filled_price"`  // 成交均价
+    Fee         float64 `json:"fee"`           // 手续费
+    FeeCurrency string  `json:"fee_currency"`  // 手续费币种
+    Error       error   `json:"-"`            // 错误信息
 }

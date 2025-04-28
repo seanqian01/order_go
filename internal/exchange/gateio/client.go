@@ -57,6 +57,100 @@ func (c *Client) GetAccountType() string {
 	return c.accountType
 }
 
+// GetPositionDetail 获取资产详细信息，包括可用余额、总余额、锁定余额
+func (c *Client) GetPositionDetail(currency string) (float64, float64, float64, error) {
+	// 调用Gate.io API获取账户余额
+	balances, _, err := c.client.SpotApi.ListSpotAccounts(c.ctx, &gateapi.ListSpotAccountsOpts{
+		Currency: optional.NewString(currency),
+	})
+	
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("获取%s余额失败: %w", currency, err)
+	}
+	
+	// 打印原始返回值以便调试
+	config.Logger.Infow("获取到原始账户余额信息",
+		"currency", currency,
+		"balances", balances,
+	)
+	
+	// 如果没有找到该资产，返回0
+	if len(balances) == 0 {
+		return 0, 0, 0, nil
+	}
+	
+	// 转换可用余额为float64
+	available, err := strconv.ParseFloat(balances[0].Available, 64)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("解析%s可用余额失败: %w", currency, err)
+	}
+	
+	// 转换锁定余额为float64
+	locked, err := strconv.ParseFloat(balances[0].Locked, 64)
+	if err != nil {
+		return available, 0, 0, fmt.Errorf("解析%s锁定余额失败: %w", currency, err)
+	}
+	
+	// 总余额 = 可用余额 + 锁定余额
+	total := available + locked
+	
+	config.Logger.Infow("解析后的账户余额信息",
+		"currency", currency,
+		"available", available,
+		"locked", locked,
+		"total", total,
+	)
+	
+	return available, total, locked, nil
+}
+
+// GetBalance 获取资产余额
+func (c *Client) GetBalance(currency string) (float64, float64, error) {
+	// 调用Gate.io API获取账户余额
+	balances, _, err := c.client.SpotApi.ListSpotAccounts(c.ctx, &gateapi.ListSpotAccountsOpts{
+		Currency: optional.NewString(currency),
+	})
+	
+	if err != nil {
+		return 0, 0, fmt.Errorf("获取%s余额失败: %w", currency, err)
+	}
+	
+	// 打印原始返回值以便调试
+	config.Logger.Infow("获取到原始账户余额信息",
+		"currency", currency,
+		"balances", balances,
+	)
+	
+	// 如果没有找到该资产，返回0
+	if len(balances) == 0 {
+		return 0, 0, nil
+	}
+	
+	// 转换可用余额为float64
+	available, err := strconv.ParseFloat(balances[0].Available, 64)
+	if err != nil {
+		return 0, 0, fmt.Errorf("解析%s可用余额失败: %w", currency, err)
+	}
+	
+	// 转换锁定余额为float64
+	locked, err := strconv.ParseFloat(balances[0].Locked, 64)
+	if err != nil {
+		return available, 0, fmt.Errorf("解析%s锁定余额失败: %w", currency, err)
+	}
+	
+	// 总余额 = 可用余额 + 锁定余额
+	total := available + locked
+	
+	config.Logger.Infow("解析后的账户余额信息",
+		"currency", currency,
+		"available", available,
+		"locked", locked,
+		"total", total,
+	)
+	
+	return available, total, nil
+}
+
 // GetSymbolPrice 获取交易对价格
 func (c *Client) GetSymbolPrice(symbol string) (float64, error) {
 	// 使用ListTickers API获取价格
