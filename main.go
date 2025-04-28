@@ -12,8 +12,30 @@ import (
 	"order_go/test"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "order_go/docs" // 导入生成的 docs 包
 )
 
+// @title           Order Go API
+// @version         1.0
+// @description     交易信号处理系统 API
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8000
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-Key
 func main() {
 	// 初始化配置
 	if err := config.InitConfig(); err != nil {
@@ -65,6 +87,9 @@ func startServer() {
 
 	// 注册路由
 	routes.RegisterSignalRoutes(router)
+	
+	// 添加 Swagger 路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	
 	// 添加启动日志
 	config.Logger.Info("服务器启动，监听端口: " + config.AppConfig.Server.Port)

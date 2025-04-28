@@ -1,0 +1,118 @@
+basePath: /api/v1
+definitions:
+  models.TradingSignal:
+    properties:
+      action:
+        description: 交易动作
+        example: buy
+        type: string
+      alert_title:
+        description: 提醒标题
+        example: BTC买入信号
+        type: string
+      contractType:
+        description: 合约类型
+        example: spot
+        type: string
+      created_at:
+        description: 创建时间
+        example: "2025-04-28T09:00:00+08:00"
+        type: string
+      id:
+        description: 信号ID
+        example: 1
+        type: integer
+      price:
+        description: 价格
+        example: 50000
+        type: number
+      scode:
+        description: 交易对简码
+        example: BTC
+        type: string
+      secretkey:
+        description: API密钥，不存储到数据库
+        example: your-secret-key
+        type: string
+      strategy_id:
+        description: 策略ID
+        example: "1"
+        type: string
+      symbol:
+        description: 交易对
+        example: BTC_USDT
+        type: string
+      time_circle:
+        description: 时间周期
+        example: 5m
+        type: string
+    required:
+    - action
+    - alert_title
+    - contractType
+    - price
+    - scode
+    - strategy_id
+    - symbol
+    - time_circle
+    type: object
+host: localhost:8000
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: 交易信号处理系统 API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Order Go API
+  version: "1.0"
+paths:
+  /api/webhook:
+    post:
+      consumes:
+      - application/json
+      description: 接收并处理交易信号，同时将信号发送到处理队列和存储队列
+      parameters:
+      - description: 交易信号
+        in: body
+        name: signal
+        required: true
+        schema:
+          $ref: '#/definitions/models.TradingSignal'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 信号处理成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 密钥无效
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: 服务不可用
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: 接收交易信号
+      tags:
+      - signals
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"

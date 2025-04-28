@@ -10,6 +10,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// HandleSignal 处理交易信号
+// @Summary      接收交易信号
+// @Description  接收并处理交易信号，同时将信号发送到处理队列和存储队列
+// @Tags         signals
+// @Accept       json
+// @Produce      json
+// @Param        signal  body      models.TradingSignal  true  "交易信号"
+// @Success      200    {object}  map[string]interface{}  "信号处理成功"
+// @Failure      400    {object}  map[string]interface{}  "请求参数错误"
+// @Failure      401    {object}  map[string]interface{}  "密钥无效"
+// @Failure      503    {object}  map[string]interface{}  "服务不可用"
+// @Router       /api/webhook [post]
+// @Security     ApiKeyAuth
 func HandleSignal(c *gin.Context) {
 	var signal models.TradingSignal
 

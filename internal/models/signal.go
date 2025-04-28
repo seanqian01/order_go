@@ -7,18 +7,19 @@ import (
 	"time"
 )
 
+// TradingSignal 交易信号模型
 type TradingSignal struct {
-	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	SecretKey    string    `json:"secretkey" gorm:"-"` // 不存储到数据库
-	Symbol       string    `json:"symbol" binding:"required"`
-	Scode        string    `json:"scode" binding:"required"`
-	ContractType string    `json:"contractType" binding:"required"`
-	Price        float64   `json:"price" binding:"required"`
-	Action       string    `json:"action" binding:"required"`
-	AlertTitle   string    `json:"alert_title" binding:"required"`
-	TimeCircle   string    `json:"time_circle" binding:"required"`
-	StrategyID   string    `json:"strategy_id" binding:"required"`
-	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
+	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id" example:"1"`                // 信号ID
+	SecretKey    string    `json:"secretkey" gorm:"-" example:"your-secret-key"`                  // API密钥，不存储到数据库
+	Symbol       string    `json:"symbol" binding:"required" example:"BTC_USDT"`                  // 交易对
+	Scode        string    `json:"scode" binding:"required" example:"BTC"`                        // 交易对简码
+	ContractType string    `json:"contractType" binding:"required" example:"spot"`                // 合约类型
+	Price        float64   `json:"price" binding:"required" example:"50000.0"`                    // 价格
+	Action       string    `json:"action" binding:"required" example:"buy"`                       // 交易动作
+	AlertTitle   string    `json:"alert_title" binding:"required" example:"BTC买入信号"`            // 提醒标题
+	TimeCircle   string    `json:"time_circle" binding:"required" example:"5m"`                   // 时间周期
+	StrategyID   string    `json:"strategy_id" binding:"required" example:"1"`                    // 策略ID
+	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime" example:"2025-04-28T09:00:00+08:00"` // 创建时间
 }
 
 // TableName 指定表名
