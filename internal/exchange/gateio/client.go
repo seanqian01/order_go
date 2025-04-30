@@ -68,8 +68,8 @@ func (c *Client) GetPositionDetail(currency string) (float64, float64, float64, 
 		return 0, 0, 0, fmt.Errorf("获取%s余额失败: %w", currency, err)
 	}
 	
-	// 打印原始返回值以便调试
-	config.Logger.Infow("获取到原始账户余额信息",
+	// 开启调试级别时才输出原始返回值
+	config.Logger.Debugw("获取到原始账户余额信息",
 		"currency", currency,
 		"balances", balances,
 	)
@@ -94,7 +94,7 @@ func (c *Client) GetPositionDetail(currency string) (float64, float64, float64, 
 	// 总余额 = 可用余额 + 锁定余额
 	total := available + locked
 	
-	config.Logger.Infow("解析后的账户余额信息",
+	config.Logger.Debugw("解析后的账户余额信息",
 		"currency", currency,
 		"available", available,
 		"locked", locked,
@@ -115,8 +115,8 @@ func (c *Client) GetBalance(currency string) (float64, float64, error) {
 		return 0, 0, fmt.Errorf("获取%s余额失败: %w", currency, err)
 	}
 	
-	// 打印原始返回值以便调试
-	config.Logger.Infow("获取到原始账户余额信息",
+	// 开启调试级别时才输出原始返回值
+	config.Logger.Debugw("获取到原始账户余额信息",
 		"currency", currency,
 		"balances", balances,
 	)
@@ -141,7 +141,7 @@ func (c *Client) GetBalance(currency string) (float64, float64, error) {
 	// 总余额 = 可用余额 + 锁定余额
 	total := available + locked
 	
-	config.Logger.Infow("解析后的账户余额信息",
+	config.Logger.Debugw("解析后的账户余额信息",
 		"currency", currency,
 		"available", available,
 		"locked", locked,

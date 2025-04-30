@@ -63,7 +63,7 @@ func processSignal(signal models.TradingSignal) {
     // 2. 调用交易引擎执行交易逻辑
     engine := trading.GetEngine()
     if err := engine.ProcessSignal(signal); err != nil {
-        config.Logger.Errorw("交易执行失败",
+        config.Logger.Errorw("交易处理终止，未执行下单",
             "error", err.Error(),
             "symbol", signal.Symbol,
             "action", signal.Action,

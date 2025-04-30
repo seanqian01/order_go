@@ -114,7 +114,56 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 			}
 
 		case <-ctx.Done():
-			// 超时，尝试撤单
+			// 超时前，先检查订单最新状态
+			orderStatus, err := ex.GetOrderStatus(order.Symbol, order.OrderID)
+			if err != nil {
+				config.Logger.Errorw("超时前查询订单状态失败",
+					"error", err.Error(),
+					"order_id", order.OrderID,
+				)
+				// 查询失败，继续尝试撤单
+			} else if orderStatus.Status == "filled" {
+				// 订单已完全成交，不需要撤单
+				config.Logger.Infow("订单已完全成交，无需撤单",
+					"order_id", order.OrderID,
+					"symbol", order.Symbol,
+				)
+				
+				// 更新数据库中的订单信息
+				updates := map[string]interface{}{
+					"status":       "filled",
+					"filled_price": orderStatus.FilledPrice,
+					"filled_amount": orderStatus.FilledQty,
+					"fee":          orderStatus.Fee,
+					"fee_currency": orderStatus.FeeCurrency,
+					"completed_at": time.Now(),
+				}
+				
+				if err := repository.DB.Model(&models.OrderRecord{}).Where("order_id = ?", order.OrderID).Updates(updates).Error; err != nil {
+					config.Logger.Errorw("更新已成交订单信息失败",
+						"error", err.Error(),
+						"order_id", order.OrderID,
+					)
+				}
+				return
+			} else if orderStatus.Status == "canceled" {
+				// 订单已被取消，不需要再撤单
+				config.Logger.Infow("订单已被取消，无需撤单",
+					"order_id", order.OrderID,
+					"symbol", order.Symbol,
+				)
+				return
+			} else if orderStatus.FilledQty > 0 && orderStatus.FilledQty < order.Amount {
+				// 订单部分成交，记录日志
+				config.Logger.Warnw("订单部分成交，尝试撤销剩余部分",
+					"order_id", order.OrderID,
+					"symbol", order.Symbol,
+					"filled_amount", orderStatus.FilledQty,
+					"total_amount", order.Amount,
+				)
+			}
+			
+			// 尝试撤单
 			config.Logger.Warnw("订单监控超时，尝试撤单",
 				"order_id", order.OrderID,
 				"symbol", order.Symbol,
@@ -125,6 +174,32 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 					"error", err.Error(),
 					"order_id", order.OrderID,
 				)
+				
+				// 撤单失败，再次检查订单状态
+				latestStatus, checkErr := ex.GetOrderStatus(order.Symbol, order.OrderID)
+				if checkErr == nil && latestStatus.Status == "filled" {
+					// 订单已成交，更新状态
+					config.Logger.Infow("撤单失败但订单已成交",
+						"order_id", order.OrderID,
+						"symbol", order.Symbol,
+					)
+					
+					updates := map[string]interface{}{
+						"status":       "filled",
+						"filled_price": latestStatus.FilledPrice,
+						"filled_amount": latestStatus.FilledQty,
+						"fee":          latestStatus.Fee,
+						"fee_currency": latestStatus.FeeCurrency,
+						"completed_at": time.Now(),
+					}
+					
+					if updateErr := repository.DB.Model(&models.OrderRecord{}).Where("order_id = ?", order.OrderID).Updates(updates).Error; updateErr != nil {
+						config.Logger.Errorw("更新已成交订单信息失败",
+							"error", updateErr.Error(),
+							"order_id", order.OrderID,
+						)
+					}
+				}
 			} else {
 				config.Logger.Infow("撤单成功",
 					"order_id", order.OrderID,
@@ -132,10 +207,21 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 				)
 
 				// 更新数据库中的订单状态
-				if err := repository.DB.Model(&models.OrderRecord{}).Where("order_id = ?", order.OrderID).Updates(map[string]interface{}{
+				updates := map[string]interface{}{
 					"status":       "canceled",
 					"completed_at": time.Now(),
-				}).Error; err != nil {
+				}
+				
+				// 如果有部分成交，记录部分成交信息
+				if orderStatus != nil && orderStatus.FilledQty > 0 {
+					updates["filled_price"] = orderStatus.FilledPrice
+					updates["filled_amount"] = orderStatus.FilledQty
+					updates["fee"] = orderStatus.Fee
+					updates["fee_currency"] = orderStatus.FeeCurrency
+					updates["status"] = "partially_filled"
+				}
+				
+				if err := repository.DB.Model(&models.OrderRecord{}).Where("order_id = ?", order.OrderID).Updates(updates).Error; err != nil {
 					config.Logger.Errorw("更新订单状态失败",
 						"error", err.Error(),
 						"order_id", order.OrderID,

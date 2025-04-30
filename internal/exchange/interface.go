@@ -186,7 +186,7 @@ func (g *GateIO) GetPosition(symbol string) (*models.Position, error) {
 	// 正确获取基础资产，对于现货交易对如HYPE_USDT，我们需要查询HYPE的余额
 	asset := parts[0] // 例如HYPE_USDT中的HYPE
 	
-	config.Logger.Infow("获取现货持仓信息",
+	config.Logger.Debugw("开始获取现货持仓信息",
 		"symbol", symbol,
 		"asset", asset,
 	)
@@ -208,21 +208,23 @@ func (g *GateIO) GetPosition(symbol string) (*models.Position, error) {
 		locked = 0 // 如果获取失败，则使用零
 	}
 	
-	config.Logger.Infow("获取到资产余额和持仓信息",
+	// 计算总持仓量（available + locked）
+	total := available + locked
+	
+	config.Logger.Infow("当前资产持仓状态",
 		"asset", asset,
-		"available", available,
-		"locked", locked,
+		"total", total,
 	)
 	
 	// 如果没有持仓，返回null
-	if locked <= 0 {
+	if total <= 0 {
 		return nil, nil
 	}
 	
-	// 返回模拟的持仓信息，使用locked值作为持仓量
+	// 返回模拟的持仓信息，使用total值作为持仓量
 	return &models.Position{
 		Symbol:     symbol,
-		Size:       locked,
+		Size:       total,
 		EntryPrice: 0, // 现货没有入场价格概念
 		Leverage:   1, // 现货没有杠杆概念
 		MarginType: "spot", // 标记为现货
