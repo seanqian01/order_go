@@ -23,9 +23,6 @@ const (
 	
 	// DefaultMinAmount 默认最小交易量（当无法从数据库获取时使用）
 	DefaultMinAmount = 0.5 // Gate.io对HYPE_USDT的最小交易量要求
-	
-	// DefaultPrecision 默认精度（当无法从数据库获取时使用）
-	DefaultPrecision = 5
 )
 
 var (
@@ -101,10 +98,10 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 	if signal.Action == "sell" {
 		// 信号为卖出，执行平仓操作
 		// 只平掉持仓量的一半（根据ClosePositionRatio常量）
-		closeAmount := position.Size * ClosePositionRatio
+		closeAmount := roundAmount(position.Size * ClosePositionRatio, signal.Symbol)
 		
-		// 获取交易对的最小交易量
-		minAmount, _, err := getContractConfig(signal.Symbol)
+		// 获取交易对的最小交易量和精度
+		minAmount, precision, err := getContractConfig(signal.Symbol)
 		if err != nil {
 			config.Logger.Errorw("获取交易对配置失败",
 				"error", err.Error(),
@@ -119,30 +116,30 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 		if closeAmount < minAmount {
 			if position.Size >= minAmount {
 				// 持仓量足够，使用最小交易量
-				closeAmount = minAmount
+				closeAmount = roundAmount(minAmount, signal.Symbol)
 				config.Logger.Infow("计算出的平仓数量小于最小交易量，使用最小交易量",
 					"symbol", signal.Symbol,
-					"position_size", position.Size,
-					"original_close_amount", position.Size * ClosePositionRatio,
-					"adjusted_close_amount", closeAmount,
-					"min_amount", minAmount,
+					"position_size", fmt.Sprintf("%.*f", precision, position.Size),
+					"original_close_amount", fmt.Sprintf("%.*f", precision, position.Size * ClosePositionRatio),
+					"adjusted_close_amount", fmt.Sprintf("%.*f", precision, closeAmount),
+					"min_amount", fmt.Sprintf("%.*f", precision, minAmount),
 				)
 			} else {
 				// 持仓量不足，全部平仓
-				closeAmount = position.Size
+				closeAmount = roundAmount(position.Size, signal.Symbol)
 				config.Logger.Infow("持仓量小于最小交易量，全部平仓",
 					"symbol", signal.Symbol,
-					"position_size", position.Size,
-					"min_amount", minAmount,
+					"position_size", fmt.Sprintf("%.*f", precision, position.Size),
+					"min_amount", fmt.Sprintf("%.*f", precision, minAmount),
 				)
 			}
 		}
 		
 		config.Logger.Infow("有现有持仓且信号为卖出，执行平仓操作",
 			"symbol", signal.Symbol,
-			"position_size", position.Size,
-			"close_amount", closeAmount,
-			"min_amount", minAmount,
+			"position_size", fmt.Sprintf("%.*f", precision, position.Size),
+			"close_amount", fmt.Sprintf("%.*f", precision, closeAmount),
+			"min_amount", fmt.Sprintf("%.*f", precision, minAmount),
 		)
 		
 		params.PositionSide = "close"
@@ -200,7 +197,7 @@ func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (f
 	}
 	
 	// 从数据库获取交易对的最小交易量和精度
-	minAmount, precision, err := getContractConfig(symbol)
+	minAmount, _, err := getContractConfig(symbol)
 	if err != nil {
 		config.Logger.Errorw("获取交易对配置失败",
 			"error", err.Error(),
@@ -230,22 +227,12 @@ func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (f
 	// 使用可用余额（available）的一定比例进行下单
 	usableBalance := available * InitialOrderBalanceRatio
 	
-	// 计算可买入的数量
-	amount := usableBalance / price
-	
-	// 根据精度进行四舍五入
-	factor := float64(1)
-	for i := 0; i < precision; i++ {
-		factor *= 10
-	}
-	amount = float64(int(amount*factor)) / factor
-	
-	// 检查是否低于最小交易量
-	if amount < minAmount {
-		err := fmt.Errorf("计算的交易数量 %.5f 小于最小交易量 %.5f", amount, minAmount)
+	// 计算可买入的数量并根据精度进行四舍五入
+	amount := roundAmount(usableBalance/price, symbol)
+	if amount == 0 {
+		err := fmt.Errorf("计算的交易数量小于最小交易量 %.5f", minAmount)
 		config.Logger.Warnw(err.Error(),
 			"symbol", symbol,
-			"calculated_amount", amount,
 			"min_amount", minAmount,
 		)
 		return 0, err
@@ -268,7 +255,7 @@ func calculateAddableAmount(symbol string, price float64, ex exchange.Exchange) 
 	}
 	
 	// 从数据库获取交易对的最小交易量和精度
-	minAmount, precision, err := getContractConfig(symbol)
+	minAmount, _, err := getContractConfig(symbol)
 	if err != nil {
 		config.Logger.Errorw("获取交易对配置失败",
 			"error", err.Error(),
@@ -297,23 +284,24 @@ func calculateAddableAmount(symbol string, price float64, ex exchange.Exchange) 
 	
 	// 使用可用余额的一定比例进行加仓
 	usableBalance := available * AddPositionBalanceRatio
-	
-	// 计算可买入的数量
-	amount := usableBalance / price
-	
-	// 根据精度进行四舍五入
-	factor := float64(1)
-	for i := 0; i < precision; i++ {
-		factor *= 10
-	}
-	amount = float64(int(amount*factor)) / factor
-	
-	// 检查是否低于最小交易量
-	if amount < minAmount {
-		err := fmt.Errorf("计算的加仓数量 %.5f 小于最小交易量 %.5f", amount, minAmount)
+	// 计算可买入的数量并根据精度进行四舍五入
+	rawAmount := usableBalance / price
+	amount := roundAmount(rawAmount, symbol)
+
+	// 记录计算得到的加仓数量
+	_, precision, _ := getContractConfig(symbol)
+	config.Logger.Infow("计算得到的加仓数量",
+		"symbol", symbol,
+		"raw_amount", fmt.Sprintf("%.*f", precision, rawAmount),
+		"rounded_amount", fmt.Sprintf("%.*f", precision, amount),
+	)
+
+	// ...
+
+	if amount == 0 {
+		err := fmt.Errorf("计算的加仓数量小于最小交易量 %.5f", minAmount)
 		config.Logger.Warnw(err.Error(),
 			"symbol", symbol,
-			"calculated_amount", amount,
 			"min_amount", minAmount,
 		)
 		return 0, err
@@ -355,16 +343,37 @@ func roundAmount(amount float64, symbol string) float64 {
 		return 0
 	}
 	
-	// 检查是否低于最小交易量
-	if amount < minAmount {
-		return 0
-	}
+	// 记录原始数量和精度信息
+	config.Logger.Debugw("开始处理交易数量精度",
+		"symbol", symbol,
+		"original_amount", amount,
+		"precision", precision,
+		"min_amount", minAmount,
+	)
 	
 	// 根据精度进行四舍五入
 	factor := float64(1)
 	for i := 0; i < precision; i++ {
 		factor *= 10
 	}
+	amount = float64(int(amount*factor)) / factor
 	
-	return float64(int(amount*factor)) / factor
+	// 记录精度处理后的数量
+	config.Logger.Debugw("完成数量精度处理",
+		"symbol", symbol,
+		"rounded_amount", fmt.Sprintf("%.*f", precision, amount),
+		"precision_factor", factor,
+	)
+	
+	// 检查是否低于最小交易量
+	if amount < minAmount {
+		config.Logger.Debugw("计算的数量小于最小交易量",
+			"symbol", symbol,
+			"calculated_amount", fmt.Sprintf("%.*f", precision, amount),
+			"min_amount", minAmount,
+		)
+		return 0.0
+	}
+	
+	return amount
 }
