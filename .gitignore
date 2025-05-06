@@ -7,6 +7,16 @@
 *.db
 /test/
 
+# 在主项目的 .gitignore 中添加
+web/node_modules
+web/dist
+web/.env.local
+web/.env.*.local
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+
+
 .DS_Store
 
 # Test binary, built with `go test -c`
