@@ -76,6 +76,11 @@ type GateIO struct {
 	client *gateio.Client
 }
 
+// GetClient 获取内部的Gate.io客户端
+func (g *GateIO) GetClient() *gateio.Client {
+	return g.client
+}
+
 // GetSymbolPrice 获取交易对价格
 func (g *GateIO) GetSymbolPrice(symbol string) (float64, error) {
 	return g.client.GetSymbolPrice(symbol)

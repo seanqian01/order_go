@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"order_go/internal/account"
 	"order_go/internal/api/routes"
 	"order_go/internal/database"
+	"order_go/internal/exchange"
 	"order_go/internal/queue"
 	"order_go/internal/repository"
 	"order_go/internal/strategy"
@@ -52,6 +54,26 @@ func main() {
 	startServer()
 }
 
+// printAccountTotalValue 计算并输出账户总价值
+func printAccountTotalValue() {
+	// 创建Gate.io交易所实例
+	ex := exchange.NewGateIO()
+	
+	// 调用账户总价值计算函数
+	totalValue, err := account.GetTotalValue(ex)
+	if err != nil {
+		config.Logger.Errorw("计算账户总价值失败",
+			"error", err.Error(),
+		)
+		return
+	}
+	
+	// 输出账户总价值
+	config.Logger.Infow("账户总价值",
+		"total_value_usdt", fmt.Sprintf("%.2f USDT", totalValue),
+	)
+}
+
 // startServer 启动正常的服务
 func startServer() {
 	// 初始化日志
@@ -71,6 +93,9 @@ func startServer() {
 
 	// 初始化策略管理器
 	strategy.GetManager().InitStrategies()
+
+	// 计算并输出账户总价值
+	printAccountTotalValue()
 
 	// 设置运行模式
 	gin.SetMode(config.AppConfig.Server.Mode)
