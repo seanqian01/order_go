@@ -11,6 +11,7 @@ import (
 	"order_go/internal/repository"
 	"order_go/internal/strategy"
 	"order_go/internal/utils/config"
+	"order_go/internal/validator"
 	"order_go/test"
 
 	"github.com/gin-gonic/gin"
@@ -96,6 +97,14 @@ func startServer() {
 
 	// 计算并输出账户总价值
 	printAccountTotalValue()
+	
+	// 校验交易对交易额度设置
+	if err := validator.ValidateContractPositionRatios(); err != nil {
+		config.Logger.Warnw("交易对交易额度校验失败，请检查配置",
+			"error", err.Error(),
+		)
+		// 注意：这里不会停止系统启动，只是输出警告日志
+	}
 
 	// 设置运行模式
 	gin.SetMode(config.AppConfig.Server.Mode)

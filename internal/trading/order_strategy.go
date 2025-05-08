@@ -3,6 +3,7 @@ package trading
 import (
 	"errors"
 	"fmt"
+	"order_go/internal/account"
 	"order_go/internal/exchange"
 	"order_go/internal/models"
 	"order_go/internal/repository"
@@ -16,10 +17,16 @@ const (
 	InitialOrderBalanceRatio = 0.5 // 50%
 	
 	// AddPositionBalanceRatio 加仓使用可用余额的比例
-	AddPositionBalanceRatio = 0.9 // 90%
+	AddPositionBalanceRatio = 0.98 // 98%
 	
 	// ClosePositionRatio 平仓时平掉持仓量的比例
 	ClosePositionRatio = 0.5 // 50%
+	
+	// MinPositionRatioThreshold 持仓量占交易对最大交易额度的最小比例阈值，低于该阈值时全部平仓
+	MinPositionRatioThreshold = 0.45 // 45%
+	
+	// MinAddPositionRatioThreshold 加仓时剩余可用资金占交易对最大交易额度的最小比例阈值，低于该阈值时不进行加仓
+	MinAddPositionRatioThreshold = 0.1 // 10%
 	
 	// DefaultMinAmount 默认最小交易量（当无法从数据库获取时使用）
 	DefaultMinAmount = 0.5 // Gate.io对HYPE_USDT的最小交易量要求
@@ -31,6 +38,14 @@ var (
 	
 	// ErrSymbolNotFound 交易对不存在错误
 	ErrSymbolNotFound = errors.New("交易对在数据库中不存在")
+	
+	// ErrExceedMaxPositionRatio 超过交易对最大交易额度错误
+	ErrExceedMaxPositionRatio = errors.New("超过交易对最大交易额度限制")
+	
+	// ErrInsufficientAddPositionRatio 加仓时剩余可用资金比例过低错误
+	ErrInsufficientAddPositionRatio = errors.New("剩余可用资金比例过低，不进行加仓")
+	
+	// 注意：ErrInsufficientBalance 错误已在 engine.go 中定义
 )
 
 // DetermineSpotOrderStrategy 确定现货交易的下单策略
@@ -96,12 +111,8 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 	
 	// 有持仓的情况
 	if signal.Action == "sell" {
-		// 信号为卖出，执行平仓操作
-		// 只平掉持仓量的一半（根据ClosePositionRatio常量）
-		closeAmount := roundAmount(position.Size * ClosePositionRatio, signal.Symbol)
-		
-		// 获取交易对的最小交易量和精度
-		minAmount, precision, err := getContractConfig(signal.Symbol)
+		// 获取交易对的配置信息
+		contractCode, err := getFullContractConfig(signal.Symbol)
 		if err != nil {
 			config.Logger.Errorw("获取交易对配置失败",
 				"error", err.Error(),
@@ -109,6 +120,57 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 			)
 			return params, err
 		}
+		
+		// 获取账户总价值
+		totalValue, err := account.GetTotalValue(ex)
+		if err != nil {
+			config.Logger.Errorw("获取账户总价值失败",
+				"error", err.Error(),
+			)
+			// 如果无法获取账户总价值，使用默认的平仓比例
+			closeAmount := roundAmount(position.Size * ClosePositionRatio, signal.Symbol)
+			params.PositionSide = "close"
+			params.Amount = closeAmount
+			return params, nil
+		}
+		
+		// 计算交易对的最大可用资金
+		maxPositionValue := totalValue * contractCode.MaxPositionRatio / 100.0
+		
+		// 计算当前持仓价值
+		currentPositionValue := position.Size * signal.Price
+		
+		// 计算当前持仓价值占交易对最大可用资金的比例
+		currentPositionRatio := currentPositionValue / maxPositionValue
+		
+		// 根据持仓比例决定平仓策略
+		var closeAmount float64
+		if currentPositionRatio <= MinPositionRatioThreshold {
+			// 如果持仓比例小于或等于最小阈值，全部平仓
+			closeAmount = roundAmount(position.Size, signal.Symbol)
+			config.Logger.Infow("持仓比例小于最小阈值，全部平仓",
+				"symbol", signal.Symbol,
+				"position_size", position.Size,
+				"current_position_value", currentPositionValue,
+				"max_position_value", maxPositionValue,
+				"current_position_ratio", currentPositionRatio,
+				"min_position_ratio_threshold", MinPositionRatioThreshold,
+			)
+		} else {
+			// 否则使用标准的平仓比例
+			closeAmount = roundAmount(position.Size * ClosePositionRatio, signal.Symbol)
+			config.Logger.Infow("使用标准平仓比例",
+				"symbol", signal.Symbol,
+				"position_size", position.Size,
+				"close_position_ratio", ClosePositionRatio,
+				"close_amount", closeAmount,
+				"current_position_ratio", currentPositionRatio,
+			)
+		}
+		
+		// 获取交易对的最小交易量
+		minAmount := contractCode.MinAmount
+		precision := contractCode.AmountPrecision
 		
 		// 如果计算出的平仓数量小于最小交易量，有两种选择：
 		// 1. 使用最小交易量（如果持仓量足够）
@@ -184,7 +246,7 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 }
 
 // calculateOrderAmount 计算下单数量
-// 根据价格和可用余额计算可下单的数量
+// 根据交易对最大交易额度计算可下单的数量
 func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (float64, error) {
 	// 交易对格式为"HYPE_USDT"
 	parts := strings.Split(symbol, "_")
@@ -196,8 +258,8 @@ func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (f
 		return 0, err
 	}
 	
-	// 从数据库获取交易对的最小交易量和精度
-	minAmount, _, err := getContractConfig(symbol)
+	// 从数据库获取交易对的配置信息
+	contractCode, err := getFullContractConfig(symbol)
 	if err != nil {
 		config.Logger.Errorw("获取交易对配置失败",
 			"error", err.Error(),
@@ -209,6 +271,51 @@ func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (f
 	// 获取报价货币（USDT）
 	quoteCurrency := parts[1]
 	
+	// 获取账户总价值
+	totalValue, err := account.GetTotalValue(ex)
+	if err != nil {
+		config.Logger.Errorw("获取账户总价值失败",
+			"error", err.Error(),
+		)
+		return 0, err
+	}
+	
+	// 计算交易对的最大可用资金（账户总价值 × 最大交易额度比例）
+	maxPositionValue := totalValue * contractCode.MaxPositionRatio / 100.0
+	
+	// 获取交易对当前持仓
+	position, err := ex.GetPosition(symbol)
+	if err != nil {
+		config.Logger.Errorw("获取持仓信息失败",
+			"error", err.Error(),
+			"symbol", symbol,
+		)
+		// 如果无法获取持仓信息，假设当前没有持仓
+		position = nil
+	}
+	
+	// 计算当前持仓价值
+	currentPositionValue := 0.0
+	if position != nil && position.Size > 0 {
+		currentPositionValue = position.Size * price
+	}
+	
+	// 计算剩余可用资金（最大可用资金 - 当前持仓价值）
+	remainingFunds := maxPositionValue - currentPositionValue
+	if remainingFunds <= 0 {
+		config.Logger.Warnw("已达到或超过交易对最大交易额度限制",
+			"symbol", symbol,
+			"max_position_value", maxPositionValue,
+			"current_position_value", currentPositionValue,
+			"max_position_ratio", contractCode.MaxPositionRatio,
+		)
+		return 0, ErrExceedMaxPositionRatio
+	}
+	
+	// 使用剩余可用资金的一定比例进行开仓
+	// 开仓时使用交易对最大可用资金的 InitialOrderBalanceRatio 比例
+	desiredFunds := remainingFunds * InitialOrderBalanceRatio
+	
 	// 获取报价货币（USDT）的可用余额
 	available, _, err := ex.GetBalance(quoteCurrency)
 	if err != nil {
@@ -219,21 +326,34 @@ func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (f
 		return 0, err
 	}
 	
+	// 检查账户可用余额是否足够
+	if available < desiredFunds {
+		config.Logger.Warnw("账户可用余额不足",
+			"symbol", symbol,
+			"available", available,
+			"desired_funds", desiredFunds,
+		)
+		return 0, ErrInsufficientBalance
+	}
+	
 	config.Logger.Infow("计算开仓数量",
-		"currency", quoteCurrency,
+		"symbol", symbol,
+		"total_value", totalValue,
+		"max_position_ratio", contractCode.MaxPositionRatio,
+		"max_position_value", maxPositionValue,
+		"current_position_value", currentPositionValue,
+		"remaining_funds", remainingFunds,
+		"desired_funds", desiredFunds,
 		"available", available,
 	)
 	
-	// 使用可用余额（available）的一定比例进行下单
-	usableBalance := available * InitialOrderBalanceRatio
-	
 	// 计算可买入的数量并根据精度进行四舍五入
-	amount := roundAmount(usableBalance/price, symbol)
+	amount := roundAmount(desiredFunds/price, symbol)
 	if amount == 0 {
-		err := fmt.Errorf("计算的交易数量小于最小交易量 %.5f", minAmount)
+		err := fmt.Errorf("计算的交易数量小于最小交易量 %.5f", contractCode.MinAmount)
 		config.Logger.Warnw(err.Error(),
 			"symbol", symbol,
-			"min_amount", minAmount,
+			"min_amount", contractCode.MinAmount,
 		)
 		return 0, err
 	}
@@ -242,7 +362,7 @@ func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (f
 }
 
 // calculateAddableAmount 计算可加仓数量
-// 根据当前持仓、价格和可用余额计算可加仓的数量
+// 根据交易对最大交易额度计算可加仓的数量
 func calculateAddableAmount(symbol string, price float64, ex exchange.Exchange) (float64, error) {
 	// 交易对格式为"HYPE_USDT"
 	parts := strings.Split(symbol, "_")
@@ -254,8 +374,8 @@ func calculateAddableAmount(symbol string, price float64, ex exchange.Exchange) 
 		return 0, err
 	}
 	
-	// 从数据库获取交易对的最小交易量和精度
-	minAmount, _, err := getContractConfig(symbol)
+	// 从数据库获取交易对的配置信息
+	contractCode, err := getFullContractConfig(symbol)
 	if err != nil {
 		config.Logger.Errorw("获取交易对配置失败",
 			"error", err.Error(),
@@ -267,6 +387,65 @@ func calculateAddableAmount(symbol string, price float64, ex exchange.Exchange) 
 	// 获取报价货币（USDT）
 	quoteCurrency := parts[1]
 	
+	// 获取账户总价值
+	totalValue, err := account.GetTotalValue(ex)
+	if err != nil {
+		config.Logger.Errorw("获取账户总价值失败",
+			"error", err.Error(),
+		)
+		return 0, err
+	}
+	
+	// 计算交易对的最大可用资金（账户总价值 × 最大交易额度比例）
+	maxPositionValue := totalValue * contractCode.MaxPositionRatio / 100.0
+	
+	// 获取交易对当前持仓
+	position, err := ex.GetPosition(symbol)
+	if err != nil {
+		config.Logger.Errorw("获取持仓信息失败",
+			"error", err.Error(),
+			"symbol", symbol,
+		)
+		// 如果无法获取持仓信息，假设当前没有持仓
+		position = nil
+	}
+	
+	// 计算当前持仓价值
+	currentPositionValue := 0.0
+	if position != nil && position.Size > 0 {
+		currentPositionValue = position.Size * price
+	}
+	
+	// 计算剩余可用资金（最大可用资金 - 当前持仓价值）
+	remainingFunds := maxPositionValue - currentPositionValue
+	if remainingFunds <= 0 {
+		config.Logger.Warnw("已达到或超过交易对最大交易额度限制",
+			"symbol", symbol,
+			"max_position_value", maxPositionValue,
+			"current_position_value", currentPositionValue,
+			"max_position_ratio", contractCode.MaxPositionRatio,
+		)
+		return 0, ErrExceedMaxPositionRatio
+	}
+	
+	// 计算剩余可用资金占交易对最大交易额度的比例
+	remainingRatio := remainingFunds / maxPositionValue
+	if remainingRatio < MinAddPositionRatioThreshold {
+		config.Logger.Warnw("剩余可用资金比例过低，不进行加仓",
+			"symbol", symbol,
+			"max_position_value", maxPositionValue,
+			"current_position_value", currentPositionValue,
+			"remaining_funds", remainingFunds,
+			"remaining_ratio", remainingRatio,
+			"min_add_position_ratio_threshold", MinAddPositionRatioThreshold,
+		)
+		return 0, ErrInsufficientAddPositionRatio
+	}
+	
+	// 使用剩余可用资金的一定比例进行加仓
+	// 加仓时使用交易对最大可用资金的 AddPositionBalanceRatio 比例
+	desiredFunds := remainingFunds * AddPositionBalanceRatio
+	
 	// 获取报价货币（USDT）的可用余额
 	available, _, err := ex.GetBalance(quoteCurrency)
 	if err != nil {
@@ -277,32 +456,44 @@ func calculateAddableAmount(symbol string, price float64, ex exchange.Exchange) 
 		return 0, err
 	}
 	
+	// 检查账户可用余额是否足够
+	if available < desiredFunds {
+		config.Logger.Warnw("账户可用余额不足",
+			"symbol", symbol,
+			"available", available,
+			"desired_funds", desiredFunds,
+		)
+		return 0, ErrInsufficientBalance
+	}
+	
 	config.Logger.Infow("计算加仓数量",
-		"currency", quoteCurrency,
+		"symbol", symbol,
+		"total_value", totalValue,
+		"max_position_ratio", contractCode.MaxPositionRatio,
+		"max_position_value", maxPositionValue,
+		"current_position_value", currentPositionValue,
+		"remaining_funds", remainingFunds,
+		"desired_funds", desiredFunds,
 		"available", available,
 	)
 	
-	// 使用可用余额的一定比例进行加仓
-	usableBalance := available * AddPositionBalanceRatio
 	// 计算可买入的数量并根据精度进行四舍五入
-	rawAmount := usableBalance / price
+	rawAmount := desiredFunds / price
 	amount := roundAmount(rawAmount, symbol)
-
+	
 	// 记录计算得到的加仓数量
-	_, precision, _ := getContractConfig(symbol)
 	config.Logger.Infow("计算得到的加仓数量",
 		"symbol", symbol,
-		"raw_amount", fmt.Sprintf("%.*f", precision, rawAmount),
-		"rounded_amount", fmt.Sprintf("%.*f", precision, amount),
+		"raw_amount", rawAmount,
+		"rounded_amount", amount,
+		"max_position_ratio", contractCode.MaxPositionRatio,
 	)
-
-	// ...
-
+	
 	if amount == 0 {
-		err := fmt.Errorf("计算的加仓数量小于最小交易量 %.5f", minAmount)
+		err := fmt.Errorf("计算的加仓数量小于最小交易量 %.5f", contractCode.MinAmount)
 		config.Logger.Warnw(err.Error(),
 			"symbol", symbol,
-			"min_amount", minAmount,
+			"min_amount", contractCode.MinAmount,
 		)
 		return 0, err
 	}
@@ -328,6 +519,24 @@ func getContractConfig(symbol string) (minAmount float64, precision int, err err
 	}
 	
 	return contractCode.MinAmount, contractCode.AmountPrecision, nil
+}
+
+// getFullContractConfig 获取完整的交易对配置
+// 从数据库中读取交易对的完整配置信息
+func getFullContractConfig(symbol string) (models.ContractCode, error) {
+	// 从数据库中查询交易对配置
+	var contractCode models.ContractCode
+	result := repository.DB.Where("symbol = ?", symbol).First(&contractCode)
+	if result.Error != nil {
+		// 如果查询失败，返回错误
+		config.Logger.Errorw("交易对在数据库中不存在",
+			"error", result.Error.Error(),
+			"symbol", symbol,
+		)
+		return contractCode, ErrSymbolNotFound
+	}
+	
+	return contractCode, nil
 }
 
 // roundAmount 根据交易对的最小交易量和精度进行调整
