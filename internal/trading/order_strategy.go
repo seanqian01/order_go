@@ -23,7 +23,7 @@ const (
 	ClosePositionRatio = 0.5 // 50%
 	
 	// MinPositionRatioThreshold 持仓量占交易对最大交易额度的最小比例阈值，低于该阈值时全部平仓
-	MinPositionRatioThreshold = 0.45 // 45%
+	MinPositionRatioThreshold = 0.40 // 40%
 	
 	// MinAddPositionRatioThreshold 加仓时剩余可用资金占交易对最大交易额度的最小比例阈值，低于该阈值时不进行加仓
 	MinAddPositionRatioThreshold = 0.1 // 10%
