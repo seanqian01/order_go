@@ -1,10 +1,8 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
-	"order_go/internal/account"
-	"order_go/internal/exchange"
+	"order_go/internal/cache"
 	"order_go/internal/repository"
 
 	"github.com/gin-gonic/gin"
@@ -30,18 +28,8 @@ func GetStats(c *gin.Context) {
         return
     }
     
-    // 获取账户总价值
-    ex := exchange.NewGateIO()
-    accountValue, err := account.GetTotalValue(ex)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": "获取账户总价值失败: " + err.Error(),
-        })
-        return
-    }
-    
-    // 格式化账户总价值，保留2位小数
-    formattedAccountValue := fmt.Sprintf("%.2f", accountValue)
+    // 从缓存获取账户总价值
+    formattedAccountValue := cache.GetCachedAccountValue()
     
     c.JSON(http.StatusOK, gin.H{
         "signalCount": signalCount,

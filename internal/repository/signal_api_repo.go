@@ -26,8 +26,8 @@ func GetSignalsPaginated(ctx context.Context, offset, limit int, symbol, action 
 		return nil, 0, err
 	}
 	
-	// 获取分页数据，按更新时间倒序排序
-	if err := query.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&signals).Error; err != nil {
+	// 获取分页数据，按创建时间倒序排序
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&signals).Error; err != nil {
 		return nil, 0, err
 	}
 	

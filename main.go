@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"order_go/internal/account"
 	"order_go/internal/api/routes"
+	"order_go/internal/cache"
 	"order_go/internal/database"
 	"order_go/internal/exchange"
 	"order_go/internal/queue"
@@ -98,6 +99,9 @@ func startServer() {
 
 	// 计算并输出账户总价值
 	printAccountTotalValue()
+	
+	// 启动账户总价值缓存更新器
+	cache.StartAccountValueCacheUpdater()
 	
 	// 校验交易对交易额度设置
 	if err := validator.ValidateContractPositionRatios(); err != nil {
