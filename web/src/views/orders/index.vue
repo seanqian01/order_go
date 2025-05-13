@@ -14,7 +14,11 @@
           border
           style="width: 100%"
         >
-          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column label="序号" width="80">
+            <template #default="scope">
+              {{ (pagination.currentPage - 1) * pagination.pageSize + scope.$index + 1 }}
+            </template>
+          </el-table-column>
           <el-table-column prop="symbol" label="交易对" width="120" />
           <el-table-column label="方向" width="100">
             <template #default="scope">

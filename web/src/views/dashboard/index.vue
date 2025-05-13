@@ -9,7 +9,7 @@
               </div>
             </template>
             <div class="card-body">
-              <h2 class="clickable-count" @click="goToSignals">{{ stats.signalCount || 0 }}</h2>
+              <h2 class="clickable-count big-number" @click="goToSignals">{{ stats.signalCount || 0 }}</h2>
             </div>
           </el-card>
         </el-col>
@@ -21,7 +21,7 @@
               </div>
             </template>
             <div class="card-body">
-              <h2 class="clickable-count" @click="goToOrders">{{ stats.orderCount || 0 }}</h2>
+              <h2 class="clickable-count big-number" @click="goToOrders">{{ stats.orderCount || 0 }}</h2>
             </div>
           </el-card>
         </el-col>
@@ -34,7 +34,7 @@
             </template>
             <div class="card-body">
               <div class="account-value-container">
-                <h2>{{ stats.accountValue || '0.00' }} USDT</h2>
+                <h2 class="big-number">{{ stats.accountValue || '0.00' }} USDT</h2>
                 <el-tooltip :content="refreshTooltip" placement="top">
                   <el-button 
                     class="refresh-btn" 
@@ -199,5 +199,9 @@
 .clickable-count:hover {
   color: #66b1ff;
   text-decoration: underline;
+}
+.big-number {
+  font-size: 36px;
+  font-weight: bold;
 }
 </style>
