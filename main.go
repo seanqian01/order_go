@@ -14,6 +14,7 @@ import (
 	"order_go/internal/validator"
 	"order_go/test"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -114,6 +115,15 @@ func startServer() {
 
 	router := gin.Default()
 	
+	// 配置CORS中间件
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8080"}, // 允许前端域名
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+	
 	// 生产环境下配置可信代理
 	if config.AppConfig.Server.Mode == "release" {
 		router.SetTrustedProxies([]string{"127.0.0.1"})
@@ -121,6 +131,8 @@ func startServer() {
 
 	// 注册路由
 	routes.RegisterSignalRoutes(router)
+	// 注册后台管理路由
+routes.RegisterAdminRoutes(router)
 	
 	// 添加 Swagger 路由
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

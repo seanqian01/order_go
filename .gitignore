@@ -6,6 +6,10 @@
 *.dylib
 *.db
 /test/
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # 在主项目的 .gitignore 中添加
 web/node_modules
