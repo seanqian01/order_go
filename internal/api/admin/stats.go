@@ -37,3 +37,17 @@ func GetStats(c *gin.Context) {
         "accountValue": formattedAccountValue,
     })
 }
+
+// RefreshAccountValue 手动刷新账户总值
+func RefreshAccountValue(c *gin.Context) {
+    // 调用缓存更新函数
+    cache.UpdateAccountValueCache()
+    
+    // 获取更新后的账户总值
+    formattedAccountValue := cache.GetCachedAccountValue()
+    
+    c.JSON(http.StatusOK, gin.H{
+        "accountValue": formattedAccountValue,
+        "message": "账户总值已刷新",
+    })
+}

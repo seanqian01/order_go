@@ -8,7 +8,7 @@ import (
 
 // RegisterAdminRoutes 注册后台管理相关路由
 func RegisterAdminRoutes(router *gin.Engine) {
-	// 创建API路由组
+	// 创建普通API路由组，与前端请求路径匹配
 	apiGroup := router.Group("/api")
 	{
 		// 信号相关路由
@@ -21,6 +21,7 @@ func RegisterAdminRoutes(router *gin.Engine) {
 		
 		// 统计数据路由
 		apiGroup.GET("/stats", admin.GetStats)
+		apiGroup.POST("/refresh-account", admin.RefreshAccountValue)
 	}
 	
 	// 保留原有的admin路由组，以便将来可能的扩展
@@ -36,5 +37,6 @@ func RegisterAdminRoutes(router *gin.Engine) {
 		
 		// 统计数据路由（与/api路由组相同的处理函数）
 		adminGroup.GET("/stats", admin.GetStats)
+		adminGroup.POST("/refresh-account", admin.RefreshAccountValue)
 	}
 }
