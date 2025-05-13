@@ -60,7 +60,7 @@
     const map = {
       'pending': 'warning',
       'completed': 'success',
-      'cancelled': 'info',
+      'canceled': 'info',
       'failed': 'danger'
     }
     return map[status] || 'info'
@@ -70,7 +70,7 @@
     const map = {
       'pending': '处理中',
       'completed': '已完成',
-      'cancelled': '已取消',
+      'canceled': '已取消',
       'failed': '失败'
     }
     return map[status] || '未知'
