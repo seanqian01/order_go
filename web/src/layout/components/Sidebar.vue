@@ -14,7 +14,7 @@
       >
         <el-menu-item index="/dashboard">
           <el-icon><odometer /></el-icon>
-          <span>仪表盘</span>
+          <span>控制台</span>
         </el-menu-item>
         
         <el-sub-menu index="/signals">

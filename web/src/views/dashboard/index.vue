@@ -9,7 +9,7 @@
               </div>
             </template>
             <div class="card-body">
-              <h2>{{ stats.signalCount || 0 }}</h2>
+              <h2 class="clickable-count" @click="goToSignals">{{ stats.signalCount || 0 }}</h2>
             </div>
           </el-card>
         </el-col>
@@ -21,7 +21,7 @@
               </div>
             </template>
             <div class="card-body">
-              <h2>{{ stats.orderCount || 0 }}</h2>
+              <h2 class="clickable-count" @click="goToOrders">{{ stats.orderCount || 0 }}</h2>
             </div>
           </el-card>
         </el-col>
@@ -43,14 +43,24 @@
   
   <script setup>
   import { ref, onMounted } from 'vue'
+  import { useRouter } from 'vue-router'
   import request from '@/api/request'
   
+  const router = useRouter()
   const stats = ref({
     signalCount: 0,
     orderCount: 0,
     accountValue: '0.00'
   })
   
+  const goToSignals = () => {
+    router.push('/signals/list')
+  }
+
+  const goToOrders = () => {
+    router.push('/orders/list')
+  }
+
   const fetchStats = async () => {
     try {
       const res = await request({
@@ -80,5 +90,14 @@
   .card-body {
     text-align: center;
     padding: 20px 0;
+  }
+  .clickable-count {
+    cursor: pointer;
+    color: #409EFF;
+    transition: color 0.3s;
+  }
+  .clickable-count:hover {
+    color: #66b1ff;
+    text-decoration: underline;
   }
   </style>
