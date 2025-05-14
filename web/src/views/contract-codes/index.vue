@@ -16,6 +16,7 @@
         :data="contractCodeList"
         border
         style="width: 100%"
+        class="responsive-table"
       >
         <el-table-column label="序号" width="80">
           <template #default="scope">
@@ -358,5 +359,41 @@ onMounted(() => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+/* 移动端响应式样式 */
+@media screen and (max-width: 768px) {
+  .contract-code-container {
+    padding: 10px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .card-header > div {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .card-header > div > button {
+    margin-bottom: 5px;
+  }
+  
+  .pagination-container {
+    justify-content: center;
+  }
+  
+  /* 表格在移动端上的优化 */
+  .responsive-table {
+    font-size: 12px;
+  }
+  
+  /* 对话框在移动端上的优化 */
+  :deep(.el-dialog) {
+    width: 95% !important;
+  }
 }
 </style>

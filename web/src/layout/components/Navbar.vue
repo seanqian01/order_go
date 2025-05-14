@@ -1,7 +1,13 @@
 <template>
     <div class="navbar">
       <div class="hamburger-container">
-        <!-- 这里可以放置汉堡菜单按钮 -->
+        <el-button 
+          class="hamburger-btn" 
+          @click="toggleSidebar" 
+          type="text"
+        >
+          <el-icon size="24"><Menu /></el-icon>
+        </el-button>
       </div>
       <div class="right-menu">
         <el-dropdown class="avatar-container" trigger="click" @command="handleCommand">
@@ -23,9 +29,16 @@
   <script setup>
   import { useRouter } from 'vue-router'
   import { ElMessageBox } from 'element-plus'
-  
+  import { Menu } from '@element-plus/icons-vue'
+
   const router = useRouter()
-  
+// eslint-disable-next-line no-undef
+  const emit = defineEmits(['toggle-sidebar'])
+
+  const toggleSidebar = () => {
+    emit('toggle-sidebar')
+  }
+
   const handleCommand = (command) => {
     if (command === 'logout') {
       ElMessageBox.confirm('确认退出系统吗?', '提示', {
@@ -49,6 +62,8 @@
   .navbar {
     height: 50px;
     overflow: hidden;
+    display: flex;
+    align-items: center;
     position: relative;
     background: #fff;
     box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
@@ -60,10 +75,24 @@
   .hamburger-container {
     line-height: 46px;
     height: 100%;
-    float: left;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
     cursor: pointer;
     transition: background .3s;
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .hamburger-container:hover {
+    background: rgba(0, 0, 0, .025)
+  }
+
+  .hamburger-btn {
+    border: none;
+    outline: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .right-menu {
     display: flex;

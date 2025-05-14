@@ -8,7 +8,7 @@
           </div>
         </template>
         
-        <el-descriptions :column="2" border v-loading="loading">
+        <el-descriptions :column="isMobile ? 1 : 2" border v-loading="loading">
           <el-descriptions-item label="编号">{{ order.id }}</el-descriptions-item>
           <el-descriptions-item label="合约代码">{{ order.symbol }}</el-descriptions-item>
           <el-descriptions-item label="方向">
@@ -31,7 +31,7 @@
   </template>
   
   <script setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { getOrderDetail } from '@/api/order'
   import { formatTime } from '@/utils/format'
@@ -40,6 +40,12 @@
   const router = useRouter()
   const loading = ref(false)
   const order = ref({})
+  const isMobile = ref(false)
+
+  // 检测当前设备是否为移动端
+  const checkIsMobile = () => {
+    isMobile.value = window.innerWidth < 768
+  }
   
   const fetchData = async () => {
     const id = route.params.id
@@ -81,7 +87,13 @@
   }
   
   onMounted(() => {
+    checkIsMobile()
+    window.addEventListener('resize', checkIsMobile)
     fetchData()
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', checkIsMobile)
   })
   </script>
   
@@ -89,9 +101,30 @@
   .order-detail-container {
     padding: 20px;
   }
+  
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+  
+  /* 移动端响应式样式 */
+  @media screen and (max-width: 768px) {
+    .order-detail-container {
+      padding: 10px;
+    }
+    
+    :deep(.el-descriptions__body) {
+      background-color: transparent;
+    }
+    
+    :deep(.el-descriptions__label) {
+      width: 100px;
+      padding: 8px;
+    }
+    
+    :deep(.el-descriptions__content) {
+      padding: 8px;
+    }
   }
   </style>

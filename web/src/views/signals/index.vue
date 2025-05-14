@@ -13,6 +13,7 @@
           :data="signalList"
           border
           style="width: 100%"
+          class="responsive-table"
         >
           <el-table-column label="序号" width="80">
             <template #default="scope">
@@ -47,7 +48,7 @@
             :current-page="pagination.currentPage"
             :page-size="pagination.pageSize"
             :page-sizes="[10, 20, 50, 100]"
-            layout="total, sizes, prev, pager, next"
+            :layout="isMobile ? 'total, prev, next, jumper' : 'total, sizes, prev, pager, next'"
             :total="total"
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
@@ -58,19 +59,25 @@
   </template>
   
   <script setup>
-  import { ref, onMounted } from 'vue'
-  import { getSignalList } from '@/api/signal'
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
+  import { getSignalList } from '@/api/signal'
   import { formatTime } from '@/utils/format'
   
   const router = useRouter()
   const loading = ref(false)
   const signalList = ref([])
   const total = ref(0)
+  const isMobile = ref(false)
   const pagination = ref({
     currentPage: 1,
     pageSize: 10
   })
+  
+  // 检测当前设备是否为移动端
+  const checkIsMobile = () => {
+    isMobile.value = window.innerWidth < 768
+  }
   
   const fetchData = async () => {
     loading.value = true
@@ -102,10 +109,14 @@
     fetchData()
   }
   
-
-  
   onMounted(() => {
+    checkIsMobile()
+    window.addEventListener('resize', checkIsMobile)
     fetchData()
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', checkIsMobile)
   })
   </script>
   
@@ -120,6 +131,31 @@
   }
   .pagination-container {
     margin-top: 20px;
-    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* 移动端响应式样式 */
+  @media screen and (max-width: 768px) {
+    .signal-container {
+      padding: 10px;
+    }
+    
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .card-header > span {
+      margin-bottom: 10px;
+    }
+    
+    .pagination-container {
+      justify-content: center;
+    }
+    
+    .responsive-table {
+      font-size: 12px;
+    }
   }
   </style>
