@@ -10,7 +10,7 @@ type ContractCode struct {
     MinAmount       float64   `json:"min_amount" gorm:"default:0.001"`           // 最小交易量
     AmountPrecision int       `json:"amount_precision" gorm:"default:3"`         // 数量精度
     PricePrecision  int       `json:"price_precision" gorm:"default:5"`          // 价格精度
-    MaxPositionRatio float64   `json:"max_position_ratio" gorm:"default:10"`     // 交易对占账户总价值的最大比例，默认10%
+    MaxPositionRatio float64   `json:"max_position_ratio"`                        // 交易对占账户总价值的最大比例，可以设置为0
     Status          bool      `json:"status" gorm:"default:true"`
     CreatedAt       time.Time `json:"created_at" gorm:"autoCreateTime"`
     UpdatedAt       time.Time `json:"updated_at" gorm:"autoUpdateTime"`

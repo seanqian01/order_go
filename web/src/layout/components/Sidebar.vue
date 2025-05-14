@@ -32,6 +32,14 @@
           </template>
           <el-menu-item index="/orders/list">订单列表</el-menu-item>
         </el-sub-menu>
+        
+        <el-sub-menu index="/contract-codes">
+          <template #title>
+            <el-icon><connection /></el-icon>
+            <span>交易对管理</span>
+          </template>
+          <el-menu-item index="/contract-codes/list">交易对列表</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </div>
   </template>

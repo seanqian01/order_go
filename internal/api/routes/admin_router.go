@@ -22,6 +22,13 @@ func RegisterAdminRoutes(router *gin.Engine) {
 		// 统计数据路由
 		apiGroup.GET("/stats", admin.GetStats)
 		apiGroup.POST("/refresh-account", admin.RefreshAccountValue)
+		
+		// 交易对管理路由
+		apiGroup.GET("/contract-codes", admin.GetContractCodes)
+		apiGroup.GET("/contract-codes/:id", admin.GetContractCodeByID)
+		apiGroup.POST("/contract-codes", admin.CreateContractCode)
+		apiGroup.PUT("/contract-codes/:id", admin.UpdateContractCode)
+		apiGroup.DELETE("/contract-codes/:id", admin.DeleteContractCode)
 	}
 	
 	// 保留原有的admin路由组，以便将来可能的扩展
@@ -38,5 +45,12 @@ func RegisterAdminRoutes(router *gin.Engine) {
 		// 统计数据路由（与/api路由组相同的处理函数）
 		adminGroup.GET("/stats", admin.GetStats)
 		adminGroup.POST("/refresh-account", admin.RefreshAccountValue)
+		
+		// 交易对管理路由（与/api路由组相同的处理函数）
+		adminGroup.GET("/contract-codes", admin.GetContractCodes)
+		adminGroup.GET("/contract-codes/:id", admin.GetContractCodeByID)
+		adminGroup.POST("/contract-codes", admin.CreateContractCode)
+		adminGroup.PUT("/contract-codes/:id", admin.UpdateContractCode)
+		adminGroup.DELETE("/contract-codes/:id", admin.DeleteContractCode)
 	}
 }

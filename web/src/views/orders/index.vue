@@ -19,7 +19,7 @@
               {{ (pagination.currentPage - 1) * pagination.pageSize + scope.$index + 1 }}
             </template>
           </el-table-column>
-          <el-table-column prop="symbol" label="交易对" width="120" />
+          <el-table-column prop="symbol" label="合约代码" width="120" />
           <el-table-column label="方向" width="100">
             <template #default="scope">
               <el-tag :type="scope.row.action === 'buy' ? 'success' : 'danger'">

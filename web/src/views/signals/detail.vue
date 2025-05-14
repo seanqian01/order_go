@@ -10,7 +10,7 @@
         
         <el-descriptions :column="2" border v-loading="loading">
           <el-descriptions-item label="编号">{{ signal.id }}</el-descriptions-item>
-          <el-descriptions-item label="交易对">{{ signal.symbol }}</el-descriptions-item>
+          <el-descriptions-item label="合约代码">{{ signal.symbol }}</el-descriptions-item>
           <el-descriptions-item label="方向">
             <el-tag :type="signal.action === 'buy' ? 'success' : 'danger'">
               {{ signal.action === 'buy' ? '买入' : '卖出' }}

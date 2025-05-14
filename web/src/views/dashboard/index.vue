@@ -48,10 +48,12 @@
                   />
                 </el-tooltip>
               </div>
-              <div v-if="lastRefreshTime" class="refresh-time">
+              <!-- 移除上次更新时间显示 -->
+              <!-- 只保留图标和提示 -->
+              <!-- <div v-if="lastRefreshTime" class="refresh-time">
                 上次更新时间: {{ formatTime(lastRefreshTime) }}
                 <span v-if="cooldownActive">(还需{{ cooldownTimeLeft }})</span>
-              </div>
+              </div> -->
             </div>
           </el-card>
         </el-col>
@@ -64,7 +66,8 @@
   import { useRouter } from 'vue-router'
   import request from '@/api/request'
   import { RefreshRight } from '@element-plus/icons-vue'
-  import { formatTime } from '@/utils/format'
+  // 由于不再显示更新时间，移除未使用的formatTime导入
+  // import { formatTime } from '@/utils/format'
   import { ElMessage } from 'element-plus'
   
   const router = useRouter()

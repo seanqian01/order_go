@@ -52,6 +52,19 @@ const routes = [
         meta: { title: '订单详情' }
       }
     ]
+  },
+  {
+    path: '/contract-codes',
+    component: Layout,
+    redirect: '/contract-codes/list',
+    children: [
+      {
+        path: 'list',
+        name: 'ContractCodeList',
+        component: () => import('../views/contract-codes/index.vue'),
+        meta: { title: '交易对管理' }
+      }
+    ]
   }
 ]
 
