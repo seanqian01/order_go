@@ -13,7 +13,6 @@ import (
 	"order_go/internal/strategy"
 	"order_go/internal/utils/config"
 	"order_go/internal/validator"
-	"order_go/test"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -47,11 +46,6 @@ func main() {
 		panic(fmt.Sprintf("加载配置失败: %v", err))
 	}
 
-	// 解析命令行参数，如果是测试模式则执行测试
-	if test.ParseFlags() {
-		test.RunTest()
-		return
-	}
 
 	// 正常启动服务
 	startServer()
