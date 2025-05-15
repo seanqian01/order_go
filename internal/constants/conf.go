@@ -1,7 +1,5 @@
 package constants
 
-import "time"
-
 // 合约类型常量
 const (
     ContractTypeAStock   = 1 // 大A股票
@@ -14,15 +12,6 @@ const (
 const (
     ExchangeTypeSpot     = "spot"    // 现货
     ExchangeTypeFutures  = "futures" // 期货
-)
-
-// 订单监控常量
-const (
-    // MonitorTimeout 订单监控超时时间
-    MonitorTimeout = 2 * time.Minute
-
-    // MonitorInterval 订单监控间隔时间
-    MonitorInterval = 5 * time.Second
 )
 
 // 获取合约类型名称

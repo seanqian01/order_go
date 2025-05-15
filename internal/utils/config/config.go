@@ -32,6 +32,17 @@ type Config struct {
 		Password string `yaml:"password"`
 		DBName   string `yaml:"dbname"`
 	} `yaml:"database"`
+	Monitor struct {
+		Timeout  string `yaml:"timeout"`  // 订单监控超时时间，例如 "2m"
+		Interval string `yaml:"interval"` // 订单监控间隔时间，例如 "5s"
+	} `yaml:"monitor"`
+	OrderStrategy struct {
+		InitialOrderRatio         float64 `yaml:"initial_order_ratio"`          // 首次开仓使用可用余额的比例
+		AddPositionRatio          float64 `yaml:"add_position_ratio"`           // 加仓使用可用余额的比例
+		ClosePositionRatio        float64 `yaml:"close_position_ratio"`         // 平仓时平掉持仓量的比例
+		MinPositionRatio          float64 `yaml:"min_position_ratio"`           // 持仓量占交易对最大交易额度的最小比例阈值
+		MinAddPositionRatio       float64 `yaml:"min_add_position_ratio"`        // 加仓时剩余可用资金占交易对最大交易额度的最小比例阈值
+	} `yaml:"order_strategy"`
 	Exchanges map[string]ExchangeConfig `yaml:"exchanges"`
 }
 

@@ -2,15 +2,14 @@ package trading
 
 import (
 	"context"
-	"strings"
-	"sync"
-	"time"
-
-	"order_go/internal/constants"
+	"fmt"
 	"order_go/internal/exchange"
 	"order_go/internal/models"
 	"order_go/internal/repository"
 	"order_go/internal/utils/config"
+	"strings"
+	"sync"
+	"time"
 )
 
 // OrderMonitor 订单监控器
@@ -63,11 +62,39 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 	// 监控结束时从活跃订单列表中移除
 	defer m.activeOrders.Delete(order.OrderID)
 
+	// 从配置文件中读取监控超时时间
+	if config.AppConfig == nil {
+		panic("配置文件未加载，无法获取监控超时时间")
+	}
+	
+	if config.AppConfig.Monitor.Timeout == "" {
+		panic("配置文件中缺少monitor.timeout配置项")
+	}
+	
+	timeout, err := time.ParseDuration(config.AppConfig.Monitor.Timeout)
+	if err != nil {
+		panic(fmt.Sprintf("解析监控超时时间失败: %v", err))
+	}
+	
+	config.Logger.Infow("从配置文件加载监控超时时间", "timeout", config.AppConfig.Monitor.Timeout)
+
 	// 设置监控超时时间
-	ctx, cancel := context.WithTimeout(context.Background(), constants.MonitorTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	ticker := time.NewTicker(constants.MonitorInterval)
+	// 从配置文件中读取监控间隔时间
+	if config.AppConfig.Monitor.Interval == "" {
+		panic("配置文件中缺少monitor.interval配置项")
+	}
+	
+	interval, err := time.ParseDuration(config.AppConfig.Monitor.Interval)
+	if err != nil {
+		panic(fmt.Sprintf("解析监控间隔时间失败: %v", err))
+	}
+	
+	config.Logger.Infow("从配置文件加载监控间隔时间", "interval", config.AppConfig.Monitor.Interval)
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {

@@ -11,26 +11,8 @@ import (
 	"strings"
 )
 
-// 下单策略常量
-const (
-	// InitialOrderBalanceRatio 首次开仓使用可用余额的比例
-	InitialOrderBalanceRatio = 0.5 // 50%
-	
-	// AddPositionBalanceRatio 加仓使用可用余额的比例
-	AddPositionBalanceRatio = 0.98 // 98%
-	
-	// ClosePositionRatio 平仓时平掉持仓量的比例
-	ClosePositionRatio = 0.5 // 50%
-	
-	// MinPositionRatioThreshold 持仓量占交易对最大交易额度的最小比例阈值，低于该阈值时全部平仓
-	MinPositionRatioThreshold = 0.40 // 40%
-	
-	// MinAddPositionRatioThreshold 加仓时剩余可用资金占交易对最大交易额度的最小比例阈值，低于该阈值时不进行加仓
-	MinAddPositionRatioThreshold = 0.1 // 10%
-	
-	// DefaultMinAmount 默认最小交易量（当无法从数据库获取时使用）
-	DefaultMinAmount = 0.5 // Gate.io对HYPE_USDT的最小交易量要求
-)
+// 下单策略常量已移至配置文件 config.yaml 中的 order_strategy 部分
+// 通过 config.AppConfig.OrderStrategy 访问
 
 var (
 	// ErrNoPositionToClose 没有持仓可平仓错误
@@ -139,7 +121,11 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 				"error", err.Error(),
 			)
 			// 如果无法获取账户总价值，使用默认的平仓比例
-			closeAmount := roundAmount(position.Size * ClosePositionRatio, signal.Symbol)
+			// 从配置文件读取平仓时平掉持仓量的比例
+	if config.AppConfig == nil {
+		panic("配置文件未加载，无法获取下单策略参数")
+	}
+	closeAmount := roundAmount(position.Size * config.AppConfig.OrderStrategy.ClosePositionRatio, signal.Symbol)
 			params.PositionSide = "close"
 			params.Amount = closeAmount
 			return params, nil
@@ -156,7 +142,11 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 		
 		// 根据持仓比例决定平仓策略
 		var closeAmount float64
-		if currentPositionRatio <= MinPositionRatioThreshold {
+		// 从配置文件读取持仓量占交易对最大交易额度的最小比例阈值
+	if config.AppConfig == nil {
+		panic("配置文件未加载，无法获取下单策略参数")
+	}
+	if currentPositionRatio <= config.AppConfig.OrderStrategy.MinPositionRatio {
 			// 如果持仓比例小于或等于最小阈值，全部平仓
 			closeAmount = roundAmount(position.Size, signal.Symbol)
 			config.Logger.Infow("持仓比例小于最小阈值，全部平仓",
@@ -165,15 +155,15 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 				"current_position_value", currentPositionValue,
 				"max_position_value", maxPositionValue,
 				"current_position_ratio", currentPositionRatio,
-				"min_position_ratio_threshold", MinPositionRatioThreshold,
+				"min_position_ratio_threshold", config.AppConfig.OrderStrategy.MinPositionRatio,
 			)
 		} else {
 			// 否则使用标准的平仓比例
-			closeAmount = roundAmount(position.Size * ClosePositionRatio, signal.Symbol)
+			closeAmount = roundAmount(position.Size * config.AppConfig.OrderStrategy.ClosePositionRatio, signal.Symbol)
 			config.Logger.Infow("使用标准平仓比例",
 				"symbol", signal.Symbol,
 				"position_size", position.Size,
-				"close_position_ratio", ClosePositionRatio,
+				"close_position_ratio", config.AppConfig.OrderStrategy.ClosePositionRatio,
 				"close_amount", closeAmount,
 				"current_position_ratio", currentPositionRatio,
 			)
@@ -193,7 +183,7 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 				config.Logger.Infow("计算出的平仓数量小于最小交易量，使用最小交易量",
 					"symbol", signal.Symbol,
 					"position_size", fmt.Sprintf("%.*f", precision, position.Size),
-					"original_close_amount", fmt.Sprintf("%.*f", precision, position.Size * ClosePositionRatio),
+					"original_close_amount", fmt.Sprintf("%.*f", precision, position.Size * config.AppConfig.OrderStrategy.ClosePositionRatio),
 					"adjusted_close_amount", fmt.Sprintf("%.*f", precision, closeAmount),
 					"min_amount", fmt.Sprintf("%.*f", precision, minAmount),
 				)
@@ -325,7 +315,10 @@ func calculateOrderAmount(price float64, symbol string, ex exchange.Exchange) (f
 	
 	// 使用剩余可用资金的一定比例进行开仓
 	// 开仓时使用交易对最大可用资金的 InitialOrderBalanceRatio 比例
-	desiredFunds := remainingFunds * InitialOrderBalanceRatio
+	if config.AppConfig == nil {
+		panic("配置文件未加载，无法获取下单策略参数")
+	}
+	desiredFunds := remainingFunds * config.AppConfig.OrderStrategy.InitialOrderRatio
 	
 	// 获取报价货币（USDT）的可用余额
 	available, _, err := ex.GetBalance(quoteCurrency)
@@ -441,21 +434,28 @@ func calculateAddableAmount(symbol string, price float64, ex exchange.Exchange) 
 	
 	// 计算剩余可用资金占交易对最大交易额度的比例
 	remainingRatio := remainingFunds / maxPositionValue
-	if remainingRatio < MinAddPositionRatioThreshold {
+	// 从配置文件读取加仓时剩余可用资金占交易对最大交易额度的最小比例阈值
+	if config.AppConfig == nil {
+		panic("配置文件未加载，无法获取下单策略参数")
+	}
+	if remainingRatio < config.AppConfig.OrderStrategy.MinAddPositionRatio {
 		config.Logger.Warnw("剩余可用资金比例过低，不进行加仓",
 			"symbol", symbol,
 			"max_position_value", maxPositionValue,
 			"current_position_value", currentPositionValue,
 			"remaining_funds", remainingFunds,
 			"remaining_ratio", remainingRatio,
-			"min_add_position_ratio_threshold", MinAddPositionRatioThreshold,
+			"min_add_position_ratio_threshold", config.AppConfig.OrderStrategy.MinAddPositionRatio,
 		)
 		return 0, ErrInsufficientAddPositionRatio
 	}
 	
 	// 使用剩余可用资金的一定比例进行加仓
 	// 加仓时使用交易对最大可用资金的 AddPositionBalanceRatio 比例
-	desiredFunds := remainingFunds * AddPositionBalanceRatio
+	if config.AppConfig == nil {
+		panic("配置文件未加载，无法获取下单策略参数")
+	}
+	desiredFunds := remainingFunds * config.AppConfig.OrderStrategy.AddPositionRatio
 	
 	// 获取报价货币（USDT）的可用余额
 	available, _, err := ex.GetBalance(quoteCurrency)
