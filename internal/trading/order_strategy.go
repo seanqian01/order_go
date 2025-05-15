@@ -73,16 +73,36 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 	}
 	
 	// 2. 根据持仓情况和信号方向确定下单策略
-	hasPosition := position != nil && position.Size > 0
+	// 获取交易对的最小交易量配置
+	contractCode, err := getFullContractConfig(signal.Symbol)
+	if err != nil {
+		config.Logger.Errorw("获取交易对配置失败",
+			"error", err.Error(),
+			"symbol", signal.Symbol,
+		)
+		return params, err
+	}
+	minAmount := contractCode.MinAmount
 	
-	if !hasPosition {
-		// 没有持仓的情况下，需要根据信号方向决定是否下单
+	// 判断是否有有效持仓（持仓量大于最小交易量）
+	hasValidPosition := position != nil && position.Size >= minAmount
+	
+	if !hasValidPosition {
+		// 没有有效持仓的情况下，需要根据信号方向决定是否下单
 		if signal.Action == "sell" {
-			// 如果是卖出信号但没有持仓，直接返回错误
-			err := errors.New("当前没有持仓仓位，无法卖出现货")
+			// 如果是卖出信号但没有有效持仓，忽略该信号
+			var errMsg string
+			if position == nil || position.Size == 0 {
+				errMsg = "当前没有持仓仓位，无法卖出现货"
+			} else {
+				errMsg = fmt.Sprintf("当前持仓量(%f)小于最小交易量(%f)，视为无持仓，忽略卖出信号", position.Size, minAmount)
+			}
+			err := errors.New(errMsg)
 			config.Logger.Warnw(err.Error(),
 				"symbol", signal.Symbol,
 				"action", signal.Action,
+				"position_size", func() float64 { if position != nil { return position.Size } else { return 0 } }(),
+				"min_amount", minAmount,
 			)
 			return params, err
 		}
@@ -109,17 +129,8 @@ func DetermineSpotOrderStrategy(signal models.TradingSignal, ex exchange.Exchang
 		return params, nil
 	}
 	
-	// 有持仓的情况
+	// 有有效持仓的情况
 	if signal.Action == "sell" {
-		// 获取交易对的配置信息
-		contractCode, err := getFullContractConfig(signal.Symbol)
-		if err != nil {
-			config.Logger.Errorw("获取交易对配置失败",
-				"error", err.Error(),
-				"symbol", signal.Symbol,
-			)
-			return params, err
-		}
 		
 		// 获取账户总价值
 		totalValue, err := account.GetTotalValue(ex)

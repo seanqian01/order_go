@@ -6,6 +6,7 @@ import (
 	"order_go/internal/strategy"
 	"order_go/internal/trading"
 	"order_go/internal/utils/config"
+	"strings"
 )
 
 var (
@@ -33,6 +34,9 @@ func InitSignalQueue() {
 
 // processSignal 处理交易信号的核心逻辑
 func processSignal(signal models.TradingSignal) {
+    // 初始化信号处理状态为未处理
+    signal.ProcessStatus = "pending"
+    
     // 创建一个延迟函数，确保无论如何都会将信号发送到存储队列
     defer func() {
         // 将信号发送到存储队列，无论信号是否有效
@@ -57,19 +61,43 @@ func processSignal(signal models.TradingSignal) {
             "symbol", signal.Symbol,
             "action", signal.Action,
         )
+        // 更新信号处理状态为无效
+        signal.ProcessStatus = "invalid"
+        signal.ProcessReason = reason
         return
     }
     
     // 2. 调用交易引擎执行交易逻辑
     engine := trading.GetEngine()
     if err := engine.ProcessSignal(signal); err != nil {
-        config.Logger.Errorw("交易处理终止，未执行下单",
-            "error", err.Error(),
-            "symbol", signal.Symbol,
-            "action", signal.Action,
-        )
+        // 检查错误是否与“持仓量小于最小交易量”相关
+        if strings.Contains(err.Error(), "当前持仓量") && strings.Contains(err.Error(), "小于最小交易量") {
+            // 将持仓量小于最小交易量的情况记录为警告级别
+            config.Logger.Warnw("交易处理终止，忽略卖出信号",
+                "reason", err.Error(),
+                "symbol", signal.Symbol,
+                "action", signal.Action,
+            )
+            // 更新信号处理状态为有效未下单
+            signal.ProcessStatus = "valid_no_order"
+            signal.ProcessReason = err.Error()
+        } else {
+            // 其他错误仍然记录为错误级别
+            config.Logger.Errorw("交易处理终止，未执行下单",
+                "error", err.Error(),
+                "symbol", signal.Symbol,
+                "action", signal.Action,
+            )
+            // 更新信号处理状态为有效未下单
+            signal.ProcessStatus = "valid_no_order"
+            signal.ProcessReason = err.Error()
+        }
         return
     }
+    
+    // 信号处理成功，更新状态为已下单
+    signal.ProcessStatus = "processed"
+    signal.ProcessReason = "信号处理成功，已下单"
     
     config.Logger.Infow("交易信号处理成功",
         "symbol", signal.Symbol,

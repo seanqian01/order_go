@@ -40,6 +40,13 @@
           <el-table-column prop="alert_title" label="提醒标题" width="150" />
           <el-table-column prop="strategy_id" label="策略ID" width="80" />
           <el-table-column prop="time_circle" label="时间周期" width="100" />
+          <el-table-column label="处理状态" width="120">
+            <template #default="scope">
+              <el-tag :type="getProcessStatusType(scope.row.process_status)">
+                {{ getProcessStatusName(scope.row.process_status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="信号接收时间" width="160">
             <template #default="scope">
               {{ formatTime(scope.row.created_at) }}
@@ -114,16 +121,50 @@
   
   // 获取合约类型名称
   const getContractTypeName = (contractType) => {
-    if (contractType === undefined || contractType === null) {
-      return null
+    switch (parseInt(contractType)) {
+      case 1:
+        return '大A股票'
+      case 2:
+        return '商品期货'
+      case 3:
+        return 'ETF金融指数'
+      case 4:
+        return '虚拟货币'
+      default:
+        return '未知类型'
     }
-    const typeMap = {
-      1: '大A股票',
-      2: '商品期货',
-      3: 'ETF金融指数',
-      4: '虚拟货币'
+  }
+
+  // 获取处理状态名称
+  const getProcessStatusName = (status) => {
+    switch (status) {
+      case 'pending':
+        return '未处理'
+      case 'invalid':
+        return '信号无效'
+      case 'valid_no_order':
+        return '有效未下单'
+      case 'processed':
+        return '已下单'
+      default:
+        return '未知状态'
     }
-    return typeMap[contractType] || '未知合约类型'
+  }
+
+  // 获取处理状态标签类型
+  const getProcessStatusType = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'info'
+      case 'invalid':
+        return 'danger'
+      case 'valid_no_order':
+        return 'warning'
+      case 'processed':
+        return 'success'
+      default:
+        return 'info'
+    }
   }
   
   const handleSizeChange = (val) => {

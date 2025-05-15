@@ -156,7 +156,7 @@ const fetchData = async () => {
   loading.value = true
   try {
     console.log('开始获取策略列表...')
-    const res = await axios.get('/api/admin/strategies', {
+    const res = await axios.get('/api/strategies', {
       params: {
         page: pagination.value.currentPage,
         limit: pagination.value.pageSize
@@ -219,10 +219,10 @@ const submitForm = async () => {
     submitting.value = true
     try {
       if (dialogType.value === 'create') {
-        await axios.post('/api/admin/strategies', form.value)
+        await axios.post('/api/strategies', form.value)
         ElMessage.success('策略创建成功')
       } else {
-        await axios.put(`/api/admin/strategies/${currentId.value}`, form.value)
+        await axios.put(`/api/strategies/${currentId.value}`, form.value)
         ElMessage.success('策略更新成功')
       }
       
@@ -248,7 +248,7 @@ const handleDelete = (row) => {
     }
   ).then(async () => {
     try {
-      await axios.delete(`/api/admin/strategies/${row.id}`)
+      await axios.delete(`/api/strategies/${row.id}`)
       ElMessage.success('删除成功')
       fetchData()
     } catch (error) {

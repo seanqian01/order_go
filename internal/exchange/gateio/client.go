@@ -251,11 +251,39 @@ func (c *Client) getSpotOrderStatus(symbol, orderID string) (*types.OrderRespons
 		return nil, fmt.Errorf("获取订单状态失败: %w", err)
 	}
 
-	filledAmount, _ := strconv.ParseFloat(order.FilledTotal, 64)
+	// 不在此处输出订单信息日志，避免日志过多
+
+	// 获取成交数量（直接使用Gate.io API提供的FilledAmount字段）
+	filledQty, _ := strconv.ParseFloat(order.FilledAmount, 64)
+	
+	// 获取成交均价
+	filledPrice, _ := strconv.ParseFloat(order.AvgDealPrice, 64)
+	if filledPrice == 0 && filledQty > 0 {
+		// 如果没有成交均价但有成交数量，尝试使用下单价格
+		filledPrice, _ = strconv.ParseFloat(order.Price, 64)
+	}
+	
+	// 获取手续费
+	fee, _ := strconv.ParseFloat(order.Fee, 64)
+	
+	// 正确映射订单状态
+	status := order.Status
+	if status == "closed" {
+		// Gate.io的closed状态需要根据实际情况映射
+		if filledQty > 0 {
+			status = "filled"
+		} else {
+			status = "canceled"
+		}
+	}
+	
 	return &types.OrderResponse{
-		OrderID:   order.Id,
-		Status:    order.Status,
-		FilledQty: filledAmount,
+		OrderID:      order.Id,
+		Status:       status,
+		FilledQty:    filledQty,
+		FilledPrice:  filledPrice,
+		Fee:          fee,
+		FeeCurrency:  order.FeeCurrency,
 	}, nil
 }
 

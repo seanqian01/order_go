@@ -223,3 +223,18 @@ func DeleteContractCode(c *gin.Context) {
 		"message": "交易对已删除",
 	})
 }
+
+// GetContractCodeBySymbol 根据交易对符号获取合约信息
+func GetContractCodeBySymbol(c *gin.Context) {
+	symbol := c.Param("symbol")
+
+	var contractCode models.ContractCode
+	if err := repository.DB.Where("symbol = ?", symbol).First(&contractCode).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "未找到该交易对: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, contractCode)
+}

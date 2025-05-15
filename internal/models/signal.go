@@ -19,7 +19,10 @@ type TradingSignal struct {
 	AlertTitle   string    `json:"alert_title" binding:"required" example:"BTC买入信号"`            // 提醒标题
 	TimeCircle   string    `json:"time_circle" binding:"required" example:"5m"`                   // 时间周期
 	StrategyID   string    `json:"strategy_id" binding:"required" example:"1"`                    // 策略ID
+	ProcessStatus string    `json:"process_status" gorm:"default:'pending'" example:"processed"`    // 处理状态: pending(未处理) invalid(信号无效) valid_no_order(信号有效未下单) processed(信号有效已下单)
+	ProcessReason string    `json:"process_reason" example:"持仓量小于最小交易量"`        // 处理原因，用于记录信号为什么没有被处理或处理结果
 	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime" example:"2025-04-28T09:00:00+08:00"` // 创建时间
+	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime" example:"2025-04-28T09:30:00+08:00"` // 更新时间
 }
 
 // TableName 指定表名

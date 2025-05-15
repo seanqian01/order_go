@@ -41,7 +41,14 @@
           <el-descriptions-item label="成交数量">{{ order.filled_amount || '-' }}</el-descriptions-item>
           <el-descriptions-item label="手续费">{{ order.fee ? `${order.fee} ${order.fee_currency}` : '-' }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(order.status)">
+            <el-tag 
+              :type="getStatusType(order.status)" 
+              :effect="['filled', 'partially_filled'].includes(order.status) ? 'dark' : 'light'"
+              :class="{
+                'filled-status': order.status === 'filled',
+                'partially-filled-status': order.status === 'partially_filled'
+              }"
+            >
               {{ getStatusText(order.status) }}
             </el-tag>
           </el-descriptions-item>
@@ -88,6 +95,8 @@
     const map = {
       'pending': 'warning',
       'completed': 'success',
+      'filled': 'success',
+      'partially_filled': 'warning',
       'canceled': 'info',
       'failed': 'danger'
     }
@@ -96,7 +105,10 @@
   
   const getStatusText = (status) => {
     const map = {
+      'created': '已创建',
       'pending': '处理中',
+      'filled': '已成交',
+      'partially_filled': '部分成交',
       'completed': '已完成',
       'canceled': '已取消',
       'failed': '失败'
@@ -146,7 +158,25 @@
     align-items: center;
   }
   
-  /* 移动端响应式样式 */
+  /* 已成交状态的高亮样式 */
+.filled-status {
+  background-color: #67C23A !important;
+  color: white !important;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+/* 部分成交状态的高亮样式 */
+.partially-filled-status {
+  background-color: #E6A23C !important;
+  color: white !important;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+/* 移动端响应式样式 */
   @media screen and (max-width: 768px) {
     .order-detail-container {
       padding: 10px;

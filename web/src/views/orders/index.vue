@@ -47,18 +47,47 @@
               {{ scope.row.order_type === 'limit' ? '限价单' : '市价单' }}
             </template>
           </el-table-column>
-          <el-table-column prop="price" label="价格" width="80" />
-          <el-table-column prop="amount" label="数量" width="80" />
-          <el-table-column prop="filled_price" label="成交价" width="80" />
-          <el-table-column prop="filled_amount" label="成交量" width="80" />
-          <el-table-column prop="fee" label="手续费" width="80">
+          <el-table-column prop="price" label="价格" width="100">
             <template #default="scope">
-              {{ scope.row.fee ? scope.row.fee + ' ' + scope.row.fee_currency : '' }}
+              {{ scope.row.price ? formatNumber(scope.row.price) : '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="amount" label="数量" width="100">
+            <template #default="scope">
+              {{ scope.row.amount ? formatNumber(scope.row.amount) : '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="成交价" width="100">
+            <template #default="scope">
+              <span :class="{ 'highlight-text': scope.row.filled_price > 0 }">
+                {{ scope.row.filled_price ? formatNumber(scope.row.filled_price) : '-' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="成交量" width="100">
+            <template #default="scope">
+              <span :class="{ 'highlight-text': scope.row.filled_amount > 0 }">
+                {{ scope.row.filled_amount ? formatNumber(scope.row.filled_amount) : '-' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="手续费（USDT）" width="120">
+            <template #default="scope">
+              <span :class="{ 'highlight-text': scope.row.fee > 0 }">
+                {{ scope.row.fee ? formatNumber(scope.row.fee) : '-' }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="80">
             <template #default="scope">
-              <el-tag :type="getStatusType(scope.row.status)">
+              <el-tag 
+                :type="getStatusType(scope.row.status)" 
+                :effect="['filled', 'partially_filled'].includes(scope.row.status) ? 'dark' : 'light'"
+                :class="{
+                  'filled-status': scope.row.status === 'filled',
+                  'partially-filled-status': scope.row.status === 'partially_filled'
+                }"
+              >
                 {{ getStatusText(scope.row.status) }}
               </el-tag>
             </template>
@@ -134,6 +163,8 @@
     const map = {
       'pending': 'warning',
       'completed': 'success',
+      'filled': 'success',
+      'partially_filled': 'warning',
       'canceled': 'info',
       'failed': 'danger'
     }
@@ -142,14 +173,26 @@
   
   const getStatusText = (status) => {
     const map = {
+      'created': '已创建',
       'pending': '处理中',
-      'completed': '已完成',
+      'filled': '已成交',
+      'partially_filled': '部分成交',
       'canceled': '已取消',
       'failed': '失败'
     }
     return map[status] || '未知'
   }
 
+  const formatNumber = (num) => {
+    if (num === undefined || num === null) return '-'
+  
+    // 如果是整数，不显示小数部分
+    if (Number.isInteger(num)) return num.toString()
+  
+    // 直接返回原始价格值，不限制小数位数
+    // 使用String()转换以保留原始精度
+    return String(num)
+  }
 
   
   const viewDetail = (row) => {
@@ -166,31 +209,54 @@
     fetchData()
   }
   
+onMounted(() => {
+  fetchData()
+})
+</script>
 
-  
-  onMounted(() => {
-    fetchData()
-  })
-  </script>
-  
-  <style scoped>
-  .order-container {
-    padding: 20px;
-  }
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .pagination-container {
-    margin-top: 20px;
-    text-align: right;
-  }
+<style scoped>
+.order-container {
+  padding: 20px;
+}
 
-  /* 操作按钮样式 */
-  .operation-buttons {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-  }
-  </style>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.operation-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 高亮显示成交信息 */
+.highlight-text {
+  color: #409EFF;
+  font-weight: bold;
+}
+
+/* 已成交状态的高亮样式 */
+.filled-status {
+  background-color: #67C23A !important;
+  color: white !important;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+
+/* 部分成交状态的高亮样式 */
+.partially-filled-status {
+  background-color: #E6A23C !important;
+  color: white !important;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: scale(1.05);
+}
+</style>

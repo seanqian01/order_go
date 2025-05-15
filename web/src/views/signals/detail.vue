@@ -26,6 +26,12 @@
           <el-descriptions-item label="提醒标题">{{ signal.alert_title }}</el-descriptions-item>
           <el-descriptions-item label="策略ID">{{ signal.strategy_id }}</el-descriptions-item>
           <el-descriptions-item label="时间周期">{{ signal.time_circle }}</el-descriptions-item>
+          <el-descriptions-item label="处理状态">
+            <el-tag :type="getProcessStatusType(signal.process_status)">
+              {{ getProcessStatusName(signal.process_status) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="处理原因" :span="2">{{ signal.process_reason || '无' }}</el-descriptions-item>
           <el-descriptions-item label="信号接收时间">{{ formatTime(signal.created_at) }}</el-descriptions-item>
           <el-descriptions-item label="更新时间">{{ formatTime(signal.updated_at) }}</el-descriptions-item>
         </el-descriptions>
@@ -75,6 +81,38 @@
       4: '虚拟货币'
     }
     return typeMap[contractType] || '未知合约类型'
+  }
+  
+  // 获取处理状态名称
+  const getProcessStatusName = (status) => {
+    switch (status) {
+      case 'pending':
+        return '未处理'
+      case 'invalid':
+        return '信号无效'
+      case 'valid_no_order':
+        return '有效未下单'
+      case 'processed':
+        return '已下单'
+      default:
+        return '未知状态'
+    }
+  }
+
+  // 获取处理状态标签类型
+  const getProcessStatusType = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'info'
+      case 'invalid':
+        return 'danger'
+      case 'valid_no_order':
+        return 'warning'
+      case 'processed':
+        return 'success'
+      default:
+        return 'info'
+    }
   }
   
   onMounted(() => {
