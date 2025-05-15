@@ -7,6 +7,7 @@
 export function formatTime(time, format = 'YYYY-MM-DD HH:mm:ss') {
   if (!time) return '';
   
+  // 将字符串转换为Date对象
   const date = typeof time === 'string' ? new Date(time) : time;
   
   // 检查日期是否有效
@@ -19,12 +20,17 @@ export function formatTime(time, format = 'YYYY-MM-DD HH:mm:ss') {
     return '-';
   }
   
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  // 转换为上海时区（UTC+8）
+  const shanghaiDate = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  
+  // 使用toISOString()获取ISO格式的时间字符串，然后取前19位（YYYY-MM-DDTHH:mm:ss）
+  const isoString = shanghaiDate.toISOString().slice(0, 19);
+  const year = isoString.slice(0, 4);
+  const month = isoString.slice(5, 7);
+  const day = isoString.slice(8, 10);
+  const hours = isoString.slice(11, 13);
+  const minutes = isoString.slice(14, 16);
+  const seconds = isoString.slice(17, 19);
   
   return format
     .replace('YYYY', year)
