@@ -7,5 +7,14 @@ module.exports = defineConfig({
       args[0].title = 'IBS量化交易管理系统'
       return args
     })
+  },
+  // 开发服务器代理配置
+  devServer: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      }
+    }
   }
 })

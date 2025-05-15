@@ -29,6 +29,8 @@ func RegisterAdminRoutes(router *gin.Engine) {
 		apiGroup.POST("/contract-codes", admin.CreateContractCode)
 		apiGroup.PUT("/contract-codes/:id", admin.UpdateContractCode)
 		apiGroup.DELETE("/contract-codes/:id", admin.DeleteContractCode)
+		
+		// 策略管理路由已移至/api/admin路径下
 	}
 	
 	// 保留原有的admin路由组，以便将来可能的扩展
@@ -52,5 +54,12 @@ func RegisterAdminRoutes(router *gin.Engine) {
 		adminGroup.POST("/contract-codes", admin.CreateContractCode)
 		adminGroup.PUT("/contract-codes/:id", admin.UpdateContractCode)
 		adminGroup.DELETE("/contract-codes/:id", admin.DeleteContractCode)
+		
+		// 策略管理路由（与/api路由组相同的处理函数）
+		adminGroup.GET("/strategies", admin.GetStrategies)
+		adminGroup.GET("/strategies/:id", admin.GetStrategyByID)
+		adminGroup.POST("/strategies", admin.CreateStrategy)
+		adminGroup.PUT("/strategies/:id", admin.UpdateStrategy)
+		adminGroup.DELETE("/strategies/:id", admin.DeleteStrategy)
 	}
 }

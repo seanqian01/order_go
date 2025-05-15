@@ -65,6 +65,18 @@ const routes = [
         meta: { title: '交易对管理' }
       }
     ]
+  },
+  {
+    path: '/strategies',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        name: 'Strategies',
+        component: () => import('../views/strategies/index.vue'),
+        meta: { title: '策略管理' }
+      }
+    ]
   }
 ]
 

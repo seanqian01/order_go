@@ -40,6 +40,14 @@
           </template>
           <el-menu-item index="/contract-codes/list">交易对列表</el-menu-item>
         </el-sub-menu>
+        
+        <el-sub-menu index="/strategies">
+          <template #title>
+            <el-icon><setting /></el-icon>
+            <span>策略管理</span>
+          </template>
+          <el-menu-item index="/strategies">策略列表</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </div>
   </template>
@@ -47,6 +55,7 @@
   <script setup>
   import { computed } from 'vue'
   import { useRoute } from 'vue-router'
+  import { Setting, Odometer, DataLine, ShoppingCart, Connection } from '@element-plus/icons-vue'
   
   const route = useRoute()
   const activeMenu = computed(() => {
