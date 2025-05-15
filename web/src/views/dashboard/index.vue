@@ -17,7 +17,7 @@
           <el-card>
             <template #header>
               <div class="card-header">
-                <span>订单总数</span>
+                <span>有效交易订单总数</span>
               </div>
             </template>
             <div class="card-body">

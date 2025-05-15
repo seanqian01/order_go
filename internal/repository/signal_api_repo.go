@@ -55,10 +55,12 @@ func GetSignalCount(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-// GetOrderCount 获取订单总数
+// GetOrderCount 获取有效交易订单数量（已成交和部分成交）
 func GetOrderCount(ctx context.Context) (int64, error) {
 	var count int64
-	if err := DB.WithContext(ctx).Model(&models.OrderRecord{}).Count(&count).Error; err != nil {
+	if err := DB.WithContext(ctx).Model(&models.OrderRecord{}).
+		Where("status IN (?)", []string{"filled", "partially_filled"}).
+		Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil
