@@ -47,12 +47,14 @@
         </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="scope">
-            <el-button size="small" type="primary" @click="editContractCode(scope.row)">
-              编辑
-            </el-button>
-            <el-button size="small" type="danger" @click="confirmDelete(scope.row)">
-              删除
-            </el-button>
+            <div class="operation-buttons">
+              <el-button size="small" type="primary" @click="editContractCode(scope.row)">
+                编辑
+              </el-button>
+              <el-button size="small" type="danger" @click="confirmDelete(scope.row)">
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -354,6 +356,13 @@ onMounted(() => {
 
 .ratio-unit {
   margin-left: 5px;
+}
+
+/* 操作按钮样式 */
+.operation-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .dialog-footer {

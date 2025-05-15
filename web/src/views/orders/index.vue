@@ -43,9 +43,11 @@
           </el-table-column>
           <el-table-column label="操作" width="150">
             <template #default="scope">
-              <el-button size="small" @click="viewDetail(scope.row)">
-                详情
-              </el-button>
+              <div class="operation-buttons">
+                <el-button size="small" @click="viewDetail(scope.row)">
+                  详情
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -149,5 +151,12 @@
   .pagination-container {
     margin-top: 20px;
     text-align: right;
+  }
+
+  /* 操作按钮样式 */
+  .operation-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
   }
   </style>

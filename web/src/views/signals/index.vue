@@ -21,24 +21,30 @@
             </template>
           </el-table-column>
           <el-table-column prop="symbol" label="合约代码" width="120" />
-          <el-table-column label="方向" width="100">
+          <el-table-column prop="scode" label="代码简称" width="100" />
+          <el-table-column label="方向" width="80">
             <template #default="scope">
               <el-tag :type="scope.row.action === 'buy' ? 'success' : 'danger'">
                 {{ scope.row.action === 'buy' ? '买入' : '卖出' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="price" label="价格" width="120" />
-          <el-table-column label="创建时间" width="180">
+          <el-table-column prop="price" label="价格" width="100" />
+          <el-table-column prop="alert_title" label="提醒标题" width="150" />
+          <el-table-column prop="strategy_id" label="策略ID" width="80" />
+          <el-table-column prop="time_circle" label="时间周期" width="100" />
+          <el-table-column label="创建时间" width="160">
             <template #default="scope">
               {{ formatTime(scope.row.created_at) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="150">
             <template #default="scope">
-              <el-button size="small" @click="viewDetail(scope.row)">
-                详情
-              </el-button>
+              <div class="operation-buttons">
+                <el-button size="small" @click="viewDetail(scope.row)">
+                  详情
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -133,6 +139,13 @@
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
+  }
+
+  /* 操作按钮样式 */
+  .operation-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
   }
 
   /* 移动端响应式样式 */

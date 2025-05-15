@@ -45,16 +45,18 @@
         </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="scope">
-            <el-button size="small" @click="openDialog('edit', scope.row)">
-              编辑
-            </el-button>
-            <el-button 
-              size="small" 
-              type="danger" 
-              @click="handleDelete(scope.row)"
-            >
-              删除
-            </el-button>
+            <div class="operation-buttons">
+              <el-button size="small" @click="openDialog('edit', scope.row)">
+                编辑
+              </el-button>
+              <el-button 
+                size="small" 
+                type="danger" 
+                @click="handleDelete(scope.row)"
+              >
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -299,6 +301,13 @@ onUnmounted(() => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+/* 操作按钮样式 */
+.operation-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 
 /* 移动端响应式样式 */
