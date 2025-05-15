@@ -16,7 +16,6 @@ type OrderParams struct {
 type OrderRecord struct {
 	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	OrderID      string    `json:"order_id" gorm:"uniqueIndex"` // 交易所订单ID
-	SignalID     uint      `json:"signal_id"`                   // 关联的信号ID
 	StrategyID   uint      `json:"strategy_id"`                 // 关联的策略ID
 	ExchangeID   uint      `json:"exchange_id"`                 // 交易所ID
 	Symbol       string    `json:"symbol"`                      // 交易对
@@ -33,8 +32,7 @@ type OrderRecord struct {
 	Fee          float64   `json:"fee"`                         // 手续费
 	FeeCurrency  string    `json:"fee_currency"`                // 手续费币种
 	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"`
-	CompletedAt  time.Time `json:"completed_at"`                // 订单完成时间
+	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"` // 订单更新时间，完成时也会更新
 }
 
 // TableName 指定表名

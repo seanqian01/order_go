@@ -22,6 +22,13 @@
           </el-table-column>
           <el-table-column prop="symbol" label="合约代码" width="120" />
           <el-table-column prop="scode" label="代码简称" width="100" />
+          <el-table-column label="合约类型" width="120">
+            <template #default="scope">
+              <el-tag type="info">
+                {{ getContractTypeName(scope.row.contractType) || '未知类型' }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="方向" width="80">
             <template #default="scope">
               <el-tag :type="scope.row.action === 'buy' ? 'success' : 'danger'">
@@ -33,7 +40,7 @@
           <el-table-column prop="alert_title" label="提醒标题" width="150" />
           <el-table-column prop="strategy_id" label="策略ID" width="80" />
           <el-table-column prop="time_circle" label="时间周期" width="100" />
-          <el-table-column label="创建时间" width="160">
+          <el-table-column label="信号接收时间" width="160">
             <template #default="scope">
               {{ formatTime(scope.row.created_at) }}
             </template>
@@ -103,6 +110,20 @@
   
   const viewDetail = (row) => {
     router.push(`/signals/detail/${row.id}`)
+  }
+  
+  // 获取合约类型名称
+  const getContractTypeName = (contractType) => {
+    if (contractType === undefined || contractType === null) {
+      return null
+    }
+    const typeMap = {
+      1: '大A股票',
+      2: '商品期货',
+      3: 'ETF金融指数',
+      4: '虚拟货币'
+    }
+    return typeMap[contractType] || '未知合约类型'
   }
   
   const handleSizeChange = (val) => {

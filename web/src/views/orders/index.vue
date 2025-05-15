@@ -19,26 +19,58 @@
               {{ (pagination.currentPage - 1) * pagination.pageSize + scope.$index + 1 }}
             </template>
           </el-table-column>
-          <el-table-column prop="symbol" label="合约代码" width="120" />
-          <el-table-column label="方向" width="100">
+          <el-table-column prop="id" label="系统订单号" width="80" />
+          <el-table-column label="交易所订单号" width="150">
+            <template #default="scope">
+              <el-text truncated>
+                {{ scope.row.order_id || '-' }}
+              </el-text>
+            </template>
+          </el-table-column>
+          <el-table-column prop="symbol" label="合约代码" width="100" />
+          <el-table-column label="交易方向" width="80">
             <template #default="scope">
               <el-tag :type="scope.row.action === 'buy' ? 'success' : 'danger'">
                 {{ scope.row.action === 'buy' ? '买入' : '卖出' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="price" label="价格" width="120" />
-          <el-table-column prop="amount" label="数量" width="120" />
-          <el-table-column label="状态" width="100">
+          <el-table-column prop="position_side" label="开仓平仓" width="80">
+            <template #default="scope">
+              <el-tag type="warning" v-if="scope.row.position_side">
+                {{ scope.row.position_side === 'open' ? '开仓' : '平仓' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="order_type" label="订单类型" width="80">
+            <template #default="scope">
+              {{ scope.row.order_type === 'limit' ? '限价单' : '市价单' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="price" label="价格" width="80" />
+          <el-table-column prop="amount" label="数量" width="80" />
+          <el-table-column prop="filled_price" label="成交价" width="80" />
+          <el-table-column prop="filled_amount" label="成交量" width="80" />
+          <el-table-column prop="fee" label="手续费" width="80">
+            <template #default="scope">
+              {{ scope.row.fee ? scope.row.fee + ' ' + scope.row.fee_currency : '' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="80">
             <template #default="scope">
               <el-tag :type="getStatusType(scope.row.status)">
                 {{ getStatusText(scope.row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="创建时间" width="180">
+          <el-table-column label="创建时间" width="150">
             <template #default="scope">
               {{ formatTime(scope.row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="更新时间" width="150">
+            <template #default="scope">
+              {{ formatTime(scope.row.updated_at) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="150">
@@ -117,6 +149,8 @@
     }
     return map[status] || '未知'
   }
+
+
   
   const viewDetail = (row) => {
     router.push(`/orders/detail/${row.id}`)

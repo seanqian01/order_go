@@ -92,7 +92,7 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 				updates["filled_amount"] = orderStatus.FilledQty
 				updates["fee"] = orderStatus.Fee
 				updates["fee_currency"] = orderStatus.FeeCurrency
-				updates["completed_at"] = time.Now()
+				// 订单完成时间自动记录在updated_at字段中，不需要单独设置completed_at
 			}
 
 			// 更新数据库中的订单信息
@@ -136,7 +136,7 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 					"filled_amount": orderStatus.FilledQty,
 					"fee":          orderStatus.Fee,
 					"fee_currency": orderStatus.FeeCurrency,
-					"completed_at": time.Now(),
+					// 订单完成时间自动记录在updated_at字段中
 				}
 				
 				if err := repository.DB.Model(&models.OrderRecord{}).Where("order_id = ?", order.OrderID).Updates(updates).Error; err != nil {
@@ -190,7 +190,7 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 						"filled_amount": latestStatus.FilledQty,
 						"fee":          latestStatus.Fee,
 						"fee_currency": latestStatus.FeeCurrency,
-						"completed_at": time.Now(),
+						// 订单完成时间自动记录在updated_at字段中
 					}
 					
 					if updateErr := repository.DB.Model(&models.OrderRecord{}).Where("order_id = ?", order.OrderID).Updates(updates).Error; updateErr != nil {
@@ -209,7 +209,7 @@ func (m *OrderMonitor) monitorOrder(order *models.OrderRecord, ex exchange.Excha
 				// 更新数据库中的订单状态
 				updates := map[string]interface{}{
 					"status":       "canceled",
-					"completed_at": time.Now(),
+					// 订单取消时间自动记录在updated_at字段中
 				}
 				
 				// 如果有部分成交，记录部分成交信息
@@ -277,7 +277,7 @@ func (m *OrderMonitor) CancelOrder(orderID string, exchangeName string) error {
 	// 更新数据库
 	if err := repository.DB.Model(&models.OrderRecord{}).Where("order_id = ?", order.OrderID).Updates(map[string]interface{}{
 		"status":       "canceled",
-		"completed_at": time.Now(),
+		// 订单取消时间自动记录在updated_at字段中
 	}).Error; err != nil {
 		config.Logger.Errorw("更新订单状态失败",
 			"error", err.Error(),

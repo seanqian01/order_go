@@ -92,7 +92,6 @@ func (e *Engine) ProcessSignal(signal models.TradingSignal) error {
 	// 3. 创建订单记录
 	strategyID, _ := strconv.ParseUint(signal.StrategyID, 10, 64)
 	orderRecord := models.OrderRecord{
-		SignalID:     signal.ID,
 		StrategyID:   uint(strategyID),
 		ExchangeID:   1, // 假设Gate.io的ID为1，实际应从配置或数据库获取
 		Symbol:       signal.Symbol,

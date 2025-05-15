@@ -12,6 +12,11 @@
           <el-descriptions-item label="编号">{{ signal.id }}</el-descriptions-item>
           <el-descriptions-item label="合约代码">{{ signal.symbol }}</el-descriptions-item>
           <el-descriptions-item label="代码简称">{{ signal.scode }}</el-descriptions-item>
+          <el-descriptions-item label="合约类型">
+            <el-tag type="info">
+              {{ getContractTypeName(signal.contractType) || '未知类型' }}
+            </el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="方向">
             <el-tag :type="signal.action === 'buy' ? 'success' : 'danger'">
               {{ signal.action === 'buy' ? '买入' : '卖出' }}
@@ -21,7 +26,7 @@
           <el-descriptions-item label="提醒标题">{{ signal.alert_title }}</el-descriptions-item>
           <el-descriptions-item label="策略ID">{{ signal.strategy_id }}</el-descriptions-item>
           <el-descriptions-item label="时间周期">{{ signal.time_circle }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ formatTime(signal.created_at) }}</el-descriptions-item>
+          <el-descriptions-item label="信号接收时间">{{ formatTime(signal.created_at) }}</el-descriptions-item>
           <el-descriptions-item label="更新时间">{{ formatTime(signal.updated_at) }}</el-descriptions-item>
         </el-descriptions>
       </el-card>
@@ -56,6 +61,20 @@
   
   const goBack = () => {
     router.back()
+  }
+
+  // 获取合约类型名称
+  const getContractTypeName = (contractType) => {
+    if (contractType === undefined || contractType === null) {
+      return null
+    }
+    const typeMap = {
+      1: '大A股票',
+      2: '商品期货',
+      3: 'ETF金融指数',
+      4: '虚拟货币'
+    }
+    return typeMap[contractType] || '未知合约类型'
   }
   
   onMounted(() => {

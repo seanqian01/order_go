@@ -9,15 +9,37 @@
         </template>
         
         <el-descriptions :column="isMobile ? 1 : 2" border v-loading="loading">
-          <el-descriptions-item label="编号">{{ order.id }}</el-descriptions-item>
-          <el-descriptions-item label="合约代码">{{ order.symbol }}</el-descriptions-item>
+          <el-descriptions-item label="系统订单号">{{ order.id }}</el-descriptions-item>
+          <el-descriptions-item label="交易所订单号">{{ order.order_id || '-' }}</el-descriptions-item>
+
+          <el-descriptions-item label="策略ID">{{ order.strategy_id || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="交易所ID">{{ order.exchange_id || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="合约代码">{{ order.symbol || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="合约代码类型">
+            <el-tag type="info">{{ getContractTypeName(order.contract_code) }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="合约类型">
+            <el-tag type="info">{{ order.contract_type === 'spot' ? '现货' : '合约' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="订单类型">
+            <el-tag type="info">{{ order.order_type === 'limit' ? '限价单' : '市价单' }}</el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="方向">
             <el-tag :type="order.action === 'buy' ? 'success' : 'danger'">
               {{ order.action === 'buy' ? '买入' : '卖出' }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="价格">{{ order.price }}</el-descriptions-item>
-          <el-descriptions-item label="数量">{{ order.amount }}</el-descriptions-item>
+          <el-descriptions-item label="持仓方向">
+            <el-tag type="warning" v-if="order.position_side">
+              {{ order.position_side === 'open' ? '开仓' : '平仓' }}
+            </el-tag>
+            <span v-else>-</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="价格">{{ order.price || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="数量">{{ order.amount || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="成交价格">{{ order.filled_price || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="成交数量">{{ order.filled_amount || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="手续费">{{ order.fee ? `${order.fee} ${order.fee_currency}` : '-' }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="getStatusType(order.status)">
               {{ getStatusText(order.status) }}
@@ -81,10 +103,26 @@
     }
     return map[status] || '未知'
   }
+
+  // 获取合约类型名称
+  const getContractTypeName = (contractCode) => {
+    if (contractCode === undefined || contractCode === null) {
+      return '-'
+    }
+    const typeMap = {
+      1: '大A股票',
+      2: '商品期货',
+      3: 'ETF金融指数',
+      4: '虚拟货币'
+    }
+    return typeMap[contractCode] || contractCode
+  }
   
   const goBack = () => {
     router.back()
   }
+
+
   
   onMounted(() => {
     checkIsMobile()
