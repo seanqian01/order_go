@@ -8,6 +8,7 @@ import (
 	"order_go/internal/models"
 	"order_go/internal/repository"
 	"order_go/internal/utils/config"
+	"order_go/internal/utils/orderid"
 	"strconv"
 	"strings"
 	"sync"
@@ -90,8 +91,30 @@ func (e *Engine) ProcessSignal(signal models.TradingSignal) error {
 	}
 	
 	// 3. 创建订单记录
+	// 生成系统订单号
+	systemOrderID, err := orderid.GenerateOrderID(orderid.TypeCrypto)
+	if err != nil {
+		config.Logger.Errorw("生成系统订单号失败，尝试重试",
+			"error", err.Error(),
+			"symbol", signal.Symbol,
+			"action", signal.Action,
+		)
+		
+		// 重试一次
+		systemOrderID, err = orderid.GenerateOrderID(orderid.TypeCrypto)
+		if err != nil {
+			config.Logger.Errorw("生成系统订单号重试仍然失败，订单创建失败",
+				"error", err.Error(),
+				"symbol", signal.Symbol,
+				"action", signal.Action,
+			)
+			return fmt.Errorf("生成系统订单号失败: %w", err)
+		}
+	}
+
 	strategyID, _ := strconv.ParseUint(signal.StrategyID, 10, 64)
 	orderRecord := models.OrderRecord{
+		SystemOrderID: systemOrderID,
 		StrategyID:   uint(strategyID),
 		ExchangeID:   1, // 假设Gate.io的ID为1，实际应从配置或数据库获取
 		Symbol:       signal.Symbol,
@@ -131,6 +154,8 @@ func (e *Engine) ProcessSignal(signal models.TradingSignal) error {
 		// 使用时间戳和随机数组合生成一个临时的OrderID
 		timeNow := time.Now().UnixNano()
 		orderRecord.OrderID = fmt.Sprintf("failed_%d_%d", timeNow, signal.ID)
+		
+
 		
 		if err := repository.DB.Create(&orderRecord).Error; err != nil {
 			config.Logger.Errorw("保存失败订单记录失败",
